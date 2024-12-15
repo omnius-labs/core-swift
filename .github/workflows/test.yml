@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "**"
+      - "!/docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Install Swift
+        uses: tayloraswift/swift-install-action@master
+        with:
+          swift-prefix: "swift-6.0.3-release/xcode/swift-6.0.3-RELEASE"
+          swift-id: "swift-6.0.3-RELEASE"
+      - name: Test
+        run: swift test
