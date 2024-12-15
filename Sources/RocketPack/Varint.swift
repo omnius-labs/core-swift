@@ -26,7 +26,7 @@ public struct Varint {
             writer.append(UInt8(value))
         } else {
             writer.append(INT16_CODE)
-            writer.append(contentsOf: withUnsafeBytes(of: value.littleEndian, Array.init))
+            writer.append(contentsOf: withUnsafeBytes(of: UInt16(value).littleEndian, Array.init))
         }
     }
 
@@ -126,7 +126,7 @@ public struct Varint {
             }
             let bytes = reader.prefix(2)
             reader.removeFirst(2)
-            return bytes.withUnsafeBytes { $0.load(as: UInt16.self) }.littleEndian
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt16($1) }
         } else {
             throw VarintError.invalidHeader
         }
@@ -152,14 +152,14 @@ public struct Varint {
             }
             let bytes = reader.prefix(2)
             reader.removeFirst(2)
-            return UInt32(bytes.withUnsafeBytes { $0.load(as: UInt16.self) }.littleEndian)
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt32($1) }
         } else if head == INT32_CODE {
             guard reader.count >= 4 else {
                 throw VarintError.tooSmallBody
             }
             let bytes = reader.prefix(4)
             reader.removeFirst(4)
-            return bytes.withUnsafeBytes { $0.load(as: UInt32.self) }.littleEndian
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt32($1) }
         } else {
             throw VarintError.invalidHeader
         }
@@ -185,21 +185,21 @@ public struct Varint {
             }
             let bytes = reader.prefix(2)
             reader.removeFirst(2)
-            return UInt64(bytes.withUnsafeBytes { $0.load(as: UInt16.self) }.littleEndian)
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else if head == INT32_CODE {
             guard reader.count >= 4 else {
                 throw VarintError.tooSmallBody
             }
             let bytes = reader.prefix(4)
             reader.removeFirst(4)
-            return UInt64(bytes.withUnsafeBytes { $0.load(as: UInt32.self) }.littleEndian)
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else if head == INT64_CODE {
             guard reader.count >= 8 else {
                 throw VarintError.tooSmallBody
             }
             let bytes = reader.prefix(8)
             reader.removeFirst(8)
-            return bytes.withUnsafeBytes { $0.load(as: UInt64.self) }.littleEndian
+            return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else {
             throw VarintError.invalidHeader
         }
