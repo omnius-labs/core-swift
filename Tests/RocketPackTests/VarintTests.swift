@@ -83,11 +83,11 @@ import Testing
         let r = try Varint.getUInt64(&buf)
         #expect(v == r)
     }
-    // for _ in 0..<32 {
-    //     let v: Int64 = .random(in: Int64.min...Int64.max, using: &rng)
-    //     var buf = Data()
-    //     Varint.putInt64(v, &buf)
-    //     let r = try Varint.getInt64(&buf)
-    //     #expect(v == r)
-    // }
+    for _ in 0..<32 {
+        let v: Int64 = .random(in: Int64.min...Int64.max, using: &rng)
+        var buf = Data()
+        Varint.putInt64(v, &buf)
+        let r = try Varint.getInt64(&buf)
+        #expect(v == r)
+    }
 }
