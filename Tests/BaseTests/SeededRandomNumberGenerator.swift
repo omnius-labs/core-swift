@@ -2,7 +2,7 @@ import Testing
 
 @testable import Base
 
-@Test func simpleTest() async throws {
+@Test func simpleTest() throws {
     var rng1 = SeededRandomNumberGenerator()
     var rng2 = SeededRandomNumberGenerator()
 

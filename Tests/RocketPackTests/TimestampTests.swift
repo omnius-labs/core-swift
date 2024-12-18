@@ -4,7 +4,7 @@ import Testing
 
 @testable import RocketPack
 
-@Test func Timestamp64Test() async throws {
+@Test func Timestamp64Test() throws {
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withInternetDateTime]
     let date = dateFormatter.date(from: "2000-01-01T00:00:00Z")!
@@ -18,7 +18,7 @@ import Testing
     #expect(ts2.toDate() == date)
 }
 
-@Test func Timestamp96Test() async throws {
+@Test func Timestamp96Test() throws {
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     let date = dateFormatter.date(from: "2000-01-01T00:00:00.000000000Z")!

@@ -16,7 +16,7 @@ public struct Timestamp64 {
     }
 }
 
-struct Timestamp96 {
+public struct Timestamp96 {
     var seconds: Int64
     var nanos: UInt32
 
