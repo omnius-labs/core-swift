@@ -4,7 +4,7 @@ import NIO
 public struct RocketMessageWriter {
     var writer: ByteBuffer
 
-    public init(_ writer: ByteBuffer) {
+    public init(_ writer: inout ByteBuffer) {
         self.writer = writer
     }
 

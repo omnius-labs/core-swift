@@ -1,6 +1,24 @@
 {
-  "originHash" : "563e566c58996f51b1d74081aca42b56413ba6078677f6695ccc6fae93ef89ce",
+  "originHash" : "7256cb32d7a570d0e03160e2c54f911e08b9d7213389d772cb32c508c60d3548",
   "pins" : [
+    {
+      "identity" : "semaphore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/Semaphore.git",
+      "state" : {
+        "revision" : "2543679282aa6f6c8ecf2138acd613ed20790bc2",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "socket",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PureSwift/Socket.git",
+      "state" : {
+        "revision" : "253aef83213691b705dfeec8e20bfd7a72219fec",
+        "version" : "0.4.0"
+      }
+    },
     {
       "identity" : "swift-atomics",
       "kind" : "remoteSourceControl",

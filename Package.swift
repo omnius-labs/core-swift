@@ -5,14 +5,20 @@ import PackageDescription
 
 let package = Package(
     name: "OmniusCore",
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v13),
+    ],
     products: [
         .library(
             name: "OmniusCore",
-            targets: ["Base", "RocketPack"])
+            targets: ["Base", "Omnikit", "RocketPack"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.77.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.23.0"),
+        .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0"),
+        .package(url: "https://github.com/PureSwift/Socket.git", from: "0.4.0"),
     ],
     targets: [
         .target(
@@ -20,6 +26,17 @@ let package = Package(
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
+            ]
+        ),
+        .target(
+            name: "Omnikit",
+            dependencies: [
+                "Base",
+                "RocketPack",
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
+                .product(name: "Semaphore", package: "Semaphore"),
+                .product(name: "Socket", package: "Socket"),
             ]
         ),
         .target(
@@ -32,6 +49,10 @@ let package = Package(
         .testTarget(
             name: "BaseTests",
             dependencies: ["Base"]
+        ),
+        .testTarget(
+            name: "OmnikitTests",
+            dependencies: ["Base", "Omnikit", "RocketPack"]
         ),
         .testTarget(
             name: "RocketPackTests",

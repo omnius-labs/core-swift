@@ -5,6 +5,13 @@ import Testing
 
 @testable import RocketPack
 
+struct Constants {
+    public static let INT8_CODE: UInt8 = 0x80
+    public static let INT16_CODE: UInt8 = 0x81
+    public static let INT32_CODE: UInt8 = 0x82
+    public static let INT64_CODE: UInt8 = 0x83
+}
+
 @Test func emptyDataGetTest() throws {
     var buf = ByteBuffer()
 
@@ -39,13 +46,6 @@ import Testing
     #expect(throws: VarintError.endOfInput) {
         _ = try Varint.getInt64(&buf)
     }
-}
-
-struct Constants {
-    public static let INT8_CODE: UInt8 = 0x80
-    public static let INT16_CODE: UInt8 = 0x81
-    public static let INT32_CODE: UInt8 = 0x82
-    public static let INT64_CODE: UInt8 = 0x83
 }
 
 @Test func brokenHeaderDataGetTest() throws {

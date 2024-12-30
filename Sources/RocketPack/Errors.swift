@@ -1,11 +1,12 @@
 public enum RocketMessageError: Error {
-    case tooLarge
     case endOfInput
+    case limitExceeded
+    case tooSmallBody
     case invalidUtf8
 }
 
 public enum VarintError: Error {
-    case invalidHeader
     case endOfInput
+    case invalidHeader
     case tooSmallBody
 }
