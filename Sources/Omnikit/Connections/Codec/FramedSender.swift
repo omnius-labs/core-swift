@@ -1,16 +1,15 @@
 import Foundation
 import NIO
 import NIOFoundationCompat
-import Socket
 
 public final class FramedSender: Sendable {
-    private let socket: Socket
+    private let client: TcpClient
     private let allocator: ByteBufferAllocator
 
     private static let headerSize = 4
 
-    public init(socket: Socket, allocator: ByteBufferAllocator) {
-        self.socket = socket
+    public init(_ client: TcpClient, allocator: ByteBufferAllocator) {
+        self.client = client
         self.allocator = allocator
     }
 
@@ -18,8 +17,12 @@ public final class FramedSender: Sendable {
         let frameLength = buffer.readableBytes
         var header = self.allocator.buffer(capacity: Self.headerSize)
         header.writeInteger(UInt32(frameLength), endianness: .little)
-        try await self.socket.write(Data(buffer: header))
+        try await self.client.send(&header)
 
-        try await self.socket.write(Data(buffer: buffer))
+        try await self.client.send(&buffer)
+    }
+
+    public func close() async throws {
+        try await self.client.close()
     }
 }

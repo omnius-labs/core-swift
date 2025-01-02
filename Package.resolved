@@ -1,5 +1,5 @@
 {
-  "originHash" : "7256cb32d7a570d0e03160e2c54f911e08b9d7213389d772cb32c508c60d3548",
+  "originHash" : "39e3567a38e2b8ab33deab2ff29368511d6c5660d1302d6dc97654e43cb85b06",
   "pins" : [
     {
       "identity" : "semaphore",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "2543679282aa6f6c8ecf2138acd613ed20790bc2",
         "version" : "0.1.0"
-      }
-    },
-    {
-      "identity" : "socket",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/PureSwift/Socket.git",
-      "state" : {
-        "revision" : "253aef83213691b705dfeec8e20bfd7a72219fec",
-        "version" : "0.4.0"
       }
     },
     {

@@ -3,6 +3,7 @@ import RocketPack
 
 public enum OmniRemotingVersion: String {
     case unknown = "Unknown"
+    case v1 = "V1"
 }
 
 public struct HelloMessage: RocketMessage, Equatable {
