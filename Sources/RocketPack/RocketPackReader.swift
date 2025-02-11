@@ -2,14 +2,8 @@ import Foundation
 import NIO
 
 public struct RocketMessageReader {
-    var reader: ByteBuffer
-
-    public init(_ reader: inout ByteBuffer) {
-        self.reader = reader
-    }
-
-    public mutating func getBytes(_ limit: Int) throws -> [UInt8] {
-        let length = try self.getUInt32()
+    public static func getBytes(_ reader: inout ByteBuffer, _ limit: Int) throws -> [UInt8] {
+        let length = try self.getUInt32(&reader)
         guard length <= limit else {
             throw RocketMessageError.limitExceeded
         }
@@ -17,70 +11,70 @@ public struct RocketMessageReader {
             return []
         }
 
-        guard let bytes = self.reader.readBytes(length: Int(length)) else {
+        guard let bytes = reader.readBytes(length: Int(length)) else {
             throw RocketMessageError.tooSmallBody
         }
         return bytes
     }
 
-    public mutating func getString(_ limit: Int) throws -> String {
-        let bytes = try self.getBytes(limit)
+    public static func getString(_ reader: inout ByteBuffer, _ limit: Int) throws -> String {
+        let bytes = try self.getBytes(&reader, limit)
         guard let string = String(data: Data(bytes), encoding: .utf8) else {
             throw RocketMessageError.invalidUtf8
         }
         return string
     }
 
-    public mutating func getTimestamp64() throws -> Timestamp64 {
-        let seconds = try self.getInt64()
+    public static func getTimestamp64(_ reader: inout ByteBuffer) throws -> Timestamp64 {
+        let seconds = try self.getInt64(&reader)
         return Timestamp64(seconds: seconds)
     }
 
-    public mutating func getTimestamp96() throws -> Timestamp96 {
-        let seconds = try self.getInt64()
-        let nanos = try self.getUInt32()
+    public static func getTimestamp96(_ reader: inout ByteBuffer) throws -> Timestamp96 {
+        let seconds = try self.getInt64(&reader)
+        let nanos = try self.getUInt32(&reader)
         return Timestamp96(seconds: seconds, nanos: nanos)
     }
 
-    public mutating func getBool() throws -> Bool {
-        let byte = try self.getUInt64()
+    public static func getBool(_ reader: inout ByteBuffer) throws -> Bool {
+        let byte = try self.getUInt64(&reader)
         return byte != 0
     }
 
-    public mutating func getUInt8() throws -> UInt8 {
-        return try Varint.getUInt8(&self.reader)
+    public static func getUInt8(_ reader: inout ByteBuffer) throws -> UInt8 {
+        return try Varint.getUInt8(&reader)
     }
 
-    public mutating func getUInt16() throws -> UInt16 {
-        return try Varint.getUInt16(&self.reader)
+    public static func getUInt16(_ reader: inout ByteBuffer) throws -> UInt16 {
+        return try Varint.getUInt16(&reader)
     }
 
-    public mutating func getUInt32() throws -> UInt32 {
-        return try Varint.getUInt32(&self.reader)
+    public static func getUInt32(_ reader: inout ByteBuffer) throws -> UInt32 {
+        return try Varint.getUInt32(&reader)
     }
 
-    public mutating func getUInt64() throws -> UInt64 {
-        return try Varint.getUInt64(&self.reader)
+    public static func getUInt64(_ reader: inout ByteBuffer) throws -> UInt64 {
+        return try Varint.getUInt64(&reader)
     }
 
-    public mutating func getInt8() throws -> Int8 {
-        return try Varint.getInt8(&self.reader)
+    public static func getInt8(_ reader: inout ByteBuffer) throws -> Int8 {
+        return try Varint.getInt8(&reader)
     }
 
-    public mutating func getInt16() throws -> Int16 {
-        return try Varint.getInt16(&self.reader)
+    public static func getInt16(_ reader: inout ByteBuffer) throws -> Int16 {
+        return try Varint.getInt16(&reader)
     }
 
-    public mutating func getInt32() throws -> Int32 {
-        return try Varint.getInt32(&self.reader)
+    public static func getInt32(_ reader: inout ByteBuffer) throws -> Int32 {
+        return try Varint.getInt32(&reader)
     }
 
-    public mutating func getInt64() throws -> Int64 {
-        return try Varint.getInt64(&self.reader)
+    public static func getInt64(_ reader: inout ByteBuffer) throws -> Int64 {
+        return try Varint.getInt64(&reader)
     }
 
-    public mutating func getFloat() throws -> Float {
-        guard let bytes = self.reader.readBytes(length: Int(4)) else {
+    public static func getFloat(_ reader: inout ByteBuffer) throws -> Float {
+        guard let bytes = reader.readBytes(length: Int(4)) else {
             throw RocketMessageError.endOfInput
         }
 
@@ -88,8 +82,8 @@ public struct RocketMessageReader {
         return Float(bitPattern: value)
     }
 
-    public mutating func getDouble() throws -> Double {
-        guard let bytes = self.reader.readBytes(length: Int(8)) else {
+    public static func getDouble(_ reader: inout ByteBuffer) throws -> Double {
+        guard let bytes = reader.readBytes(length: Int(8)) else {
             throw RocketMessageError.endOfInput
         }
 

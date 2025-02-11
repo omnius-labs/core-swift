@@ -2,7 +2,8 @@ import Foundation
 import NIO
 
 public enum FramedReceiverError: Error {
-    case incompleteFrame
+    case incompleteHeader
+    case incompleteBody
     case frameTooLong
 }
 
@@ -25,7 +26,7 @@ public final class FramedReceiver: Sendable {
             let remain = Self.headerSize - headerBuffer.readableBytes
             var bytes = try await self.client.receive(length: remain)
             guard bytes.readableBytes > 0 else {
-                throw FramedReceiverError.incompleteFrame
+                throw FramedReceiverError.incompleteHeader
             }
             headerBuffer.writeBuffer(&bytes)
         }
@@ -37,11 +38,15 @@ public final class FramedReceiver: Sendable {
             let remain = bodyLength - bodyBuffer.readableBytes
             var bytes = try await self.client.receive(length: remain)
             guard bytes.readableBytes > 0 else {
-                throw FramedReceiverError.incompleteFrame
+                throw FramedReceiverError.incompleteBody
             }
             bodyBuffer.writeBuffer(&bytes)
         }
 
         return bodyBuffer
+    }
+
+    public func close() async throws {
+        try await self.client.close()
     }
 }

@@ -1,7 +1,22 @@
 import Foundation
 import RocketPack
 
-public enum ProtocolErrorCode: Error, CustomStringConvertible {
+public enum OmniRemotingError<TErrorMessage>: Error
+where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
+    case applicationError(TErrorMessage)
+    case protocolError(OmniRemotingProtocolErrorCode)
+
+    public var description: String {
+        switch self {
+        case .applicationError(let message):
+            return "ApplicationError: \(message)"
+        case .protocolError(let error):
+            return "ProtocolError: \(error)"
+        }
+    }
+}
+
+public enum OmniRemotingProtocolErrorCode: Error, CustomStringConvertible {
     case unexpectedProtocol
     case unsupportedVersion
     case sendFailed
@@ -26,21 +41,6 @@ public enum ProtocolErrorCode: Error, CustomStringConvertible {
             return "DeserializationFailed"
         case .handshakeNotFinished:
             return "HandshakeNotFinished"
-        }
-    }
-}
-
-public enum RocketMessageError<TErrorMessage>: Error
-where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
-    case applicationError(TErrorMessage)
-    case protocolError(ProtocolErrorCode)
-
-    public var description: String {
-        switch self {
-        case .applicationError(let message):
-            return "ApplicationError: \(message)"
-        case .protocolError(let error):
-            return "ProtocolError: \(error)"
         }
     }
 }
