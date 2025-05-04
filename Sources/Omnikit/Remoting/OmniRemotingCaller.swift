@@ -2,8 +2,8 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingCaller<TError>
-where TError: RocketMessage & CustomStringConvertible & Sendable {
+public class OmniRemotingCaller<TErrorMessage>
+where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
     private let tcpClient: TcpClient
     private let sender: FramedSender
     private let receiver: FramedReceiver
@@ -17,8 +17,7 @@ where TError: RocketMessage & CustomStringConvertible & Sendable {
         self.tcpClient = tcpClient
         self.functionId = functionId
         self.sender = FramedSender(tcpClient, allocator: allocator)
-        self.receiver = FramedReceiver(
-            tcpClient, maxFrameLength: maxFrameLength, allocator: allocator)
+        self.receiver = FramedReceiver(tcpClient, maxFrameLength: maxFrameLength, allocator: allocator)
     }
 
     public func close() async throws {
@@ -33,23 +32,26 @@ where TError: RocketMessage & CustomStringConvertible & Sendable {
         try await self.sender.send(&bytes)
     }
 
-    public func call<TParam, TResult>(_ param: TParam) async throws -> TResult
+    public func call_unary<TRequestMessage, TResponseMessage>(_ param: TRequestMessage) async throws -> TResponseMessage
     where
-        TParam: RocketMessage,
-        TResult: RocketMessage
+        TRequestMessage: RocketMessage,
+        TResponseMessage: RocketMessage
     {
-        var sendingBytes = try OmniRemotingPacketMessage<TParam, TError>.complete(param).export()
+        var sendingBytes = try OmniRemotingPacketMessage<TRequestMessage, TErrorMessage>.complete(param).export()
         try await sender.send(&sendingBytes)
 
         var receivedBytes = try await receiver.receive()
-        let result = try OmniRemotingPacketMessage<TResult, TError>.import(&receivedBytes)
+        let result = try OmniRemotingPacketMessage<TResponseMessage, TErrorMessage>.import(&receivedBytes)
 
         switch result {
-        case .unknown: throw OmniRemotingError<TError>.protocolError(.unexpectedProtocol)
-        case .continue(_): throw OmniRemotingError<TError>.protocolError(.unexpectedProtocol)
-        case .complete(let receivedResult): return receivedResult
-        case .error(let received_error_message):
-            throw OmniRemotingError<TError>.applicationError(received_error_message)
+        case .unknown: throw OmniRemotingError<TErrorMessage>.protocolError(.unsupportedType)
+        case .continue(_): throw OmniRemotingError<TErrorMessage>.protocolError(.unsupportedType)
+        case .complete(let message): return message
+        case .error(let error_message): throw OmniRemotingError<TErrorMessage>.applicationError(error_message)
         }
+    }
+
+    public func call_stream() async throws -> OmniRemotingStream<TErrorMessage> {
+        return OmniRemotingStream<TErrorMessage>(sender: self.sender, receiver: self.receiver)
     }
 }

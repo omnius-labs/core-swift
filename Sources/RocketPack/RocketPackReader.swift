@@ -5,14 +5,14 @@ public struct RocketMessageReader {
     public static func getBytes(_ reader: inout ByteBuffer, _ limit: Int) throws -> [UInt8] {
         let length = try self.getUInt32(&reader)
         guard length <= limit else {
-            throw RocketMessageError.limitExceeded
+            throw RocketMessageError.tooLarge
         }
         guard length > 0 else {
             return []
         }
 
         guard let bytes = reader.readBytes(length: Int(length)) else {
-            throw RocketMessageError.tooSmallBody
+            throw RocketMessageError.endOfInput
         }
         return bytes
     }

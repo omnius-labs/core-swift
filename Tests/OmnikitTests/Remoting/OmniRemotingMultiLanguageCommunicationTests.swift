@@ -19,7 +19,7 @@ func OmniRemotingCallerTest() async throws {
     try await caller.handshake()
 
     let param = OmniRemotingTestMessage(text: "test")
-    let result: OmniRemotingTestMessage = try await caller.call(param)
+    let result: OmniRemotingTestMessage = try await caller.call_unary(param)
 
     print(result.text)
 }
@@ -43,7 +43,7 @@ func OmniRemotingListenerTest() async throws {
 
         switch listener.functionId {
         case 1:
-            try await listener.listen(callback: OmniRemotingListenerTestCallback)
+            try await listener.listen_unary(callback: OmniRemotingListenerTestCallback)
             break
         default:
             break

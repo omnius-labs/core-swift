@@ -1,6 +1,12 @@
 import Foundation
 import NIO
 
+public enum VarintError: Error {
+    case invalidHeader
+    case endOfInput
+    case tooSmall
+}
+
 public struct Varint {
     static let MIN_INT7: UInt8 = 0x00  // 0
     static let MAX_INT7: UInt8 = 0x7F  // 127
@@ -97,7 +103,7 @@ public struct Varint {
             return head
         } else if head == INT8_CODE {
             guard let value: UInt8 = reader.readInteger() else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return value
         } else {
@@ -114,12 +120,12 @@ public struct Varint {
             return UInt16(head)
         } else if head == INT8_CODE {
             guard let value: UInt8 = reader.readInteger() else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return UInt16(value)
         } else if head == INT16_CODE {
             guard let bytes = reader.readBytes(length: 2) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt16($1) }
         } else {
@@ -136,17 +142,17 @@ public struct Varint {
             return UInt32(head)
         } else if head == INT8_CODE {
             guard let value: UInt8 = reader.readInteger() else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return UInt32(value)
         } else if head == INT16_CODE {
             guard let bytes = reader.readBytes(length: 2) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt32($1) }
         } else if head == INT32_CODE {
             guard let bytes = reader.readBytes(length: 4) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt32($1) }
         } else {
@@ -163,22 +169,22 @@ public struct Varint {
             return UInt64(head)
         } else if head == INT8_CODE {
             guard let value: UInt8 = reader.readInteger() else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return UInt64(value)
         } else if head == INT16_CODE {
             guard let bytes = reader.readBytes(length: 2) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else if head == INT32_CODE {
             guard let bytes = reader.readBytes(length: 4) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else if head == INT64_CODE {
             guard let bytes = reader.readBytes(length: 8) else {
-                throw VarintError.tooSmallBody
+                throw VarintError.tooSmall
             }
             return bytes.reversed().reduce(0) { $0 << 8 | UInt64($1) }
         } else {

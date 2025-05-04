@@ -27,8 +27,7 @@ public struct Timestamp96 {
 
     public init(date: Date) {
         self.seconds = Int64(date.timeIntervalSince1970)
-        self.nanos = UInt32(
-            date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000_000)
+        self.nanos = UInt32(date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000_000)
     }
 
     public func toDate() -> Date {

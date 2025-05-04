@@ -26,8 +26,7 @@ struct OmniRemotingHelloMessage: RocketMessage, Equatable {
     public static func unpack(_ bytes: inout ByteBuffer, depth: UInt32) throws
         -> OmniRemotingHelloMessage
     {
-        let text = try RocketMessageReader.getString(&bytes, 1024)
-        let version = OmniRemotingVersion(rawValue: text) ?? .unknown
+        let version = OmniRemotingVersion(rawValue: try RocketMessageReader.getString(&bytes, 1024)) ?? .unknown
         let functionId = try RocketMessageReader.getUInt32(&bytes)
         return OmniRemotingHelloMessage(version: version, functionId: functionId)
     }

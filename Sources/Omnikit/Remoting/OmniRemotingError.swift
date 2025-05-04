@@ -17,7 +17,7 @@ where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
 }
 
 public enum OmniRemotingProtocolErrorCode: Error, CustomStringConvertible {
-    case unexpectedProtocol
+    case unsupportedType
     case unsupportedVersion
     case sendFailed
     case receiveFailed
@@ -27,7 +27,7 @@ public enum OmniRemotingProtocolErrorCode: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .unexpectedProtocol:
+        case .unsupportedType:
             return "UnexpectedProtocol"
         case .unsupportedVersion:
             return "UnsupportedVersion"

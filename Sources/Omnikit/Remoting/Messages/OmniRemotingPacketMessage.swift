@@ -2,7 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-enum OmniRemotingPacketMessage<T, E>
+public enum OmniRemotingPacketMessage<T, E>
 where T: RocketMessage, E: RocketMessage & CustomStringConvertible {
     case unknown
     case `continue`(T)

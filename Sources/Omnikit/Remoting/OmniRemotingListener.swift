@@ -5,11 +5,11 @@ import RocketPack
 public enum OmniRemotingListenResult<T, E>
 where T: RocketMessage, E: RocketMessage & CustomStringConvertible & Sendable {
     case success(T)
-    case failure(E)
+    case error(E)
 }
 
-public class OmniRemotingListener<TError>
-where TError: RocketMessage & CustomStringConvertible & Sendable {
+public class OmniRemotingListener<TErrorMessage>
+where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
     private let tcpClient: TcpClient
     private let sender: FramedSender
     private let receiver: FramedReceiver
@@ -19,8 +19,7 @@ where TError: RocketMessage & CustomStringConvertible & Sendable {
     public init(tcpClient: TcpClient, maxFrameLength: Int, allocator: ByteBufferAllocator) {
         self.tcpClient = tcpClient
         self.sender = FramedSender(tcpClient, allocator: allocator)
-        self.receiver = FramedReceiver(
-            tcpClient, maxFrameLength: maxFrameLength, allocator: allocator)
+        self.receiver = FramedReceiver(tcpClient, maxFrameLength: maxFrameLength, allocator: allocator)
     }
 
     public func close() async throws {
@@ -37,36 +36,39 @@ where TError: RocketMessage & CustomStringConvertible & Sendable {
             self.functionId = helloMessage.functionId
         }
 
-        throw OmniRemotingError<TError>.protocolError(.unexpectedProtocol)
+        throw OmniRemotingError<TErrorMessage>.protocolError(.unsupportedVersion)
     }
 
-    public func listen<TParam, TResult>(
-        callback: (TParam) async -> OmniRemotingListenResult<TResult, TError>
+    public func listen_unary<TParamMessage, TSuccessMessage>(
+        callback: (TParamMessage) async -> OmniRemotingListenResult<TSuccessMessage, TErrorMessage>
     ) async throws
     where
-        TParam: RocketMessage,
-        TResult: RocketMessage
+        TParamMessage: RocketMessage,
+        TSuccessMessage: RocketMessage
     {
         var bytes = try await self.receiver.receive()
-        let param = try OmniRemotingPacketMessage<TParam, TError>.import(&bytes)
+        let param = try OmniRemotingPacketMessage<TParamMessage, TErrorMessage>.import(&bytes)
 
         switch param {
-        case .unknown: throw OmniRemotingError<TError>.protocolError(.unexpectedProtocol)
-        case .continue(_): throw OmniRemotingError<TError>.protocolError(.unexpectedProtocol)
+        case .unknown: throw OmniRemotingError<TErrorMessage>.protocolError(.unsupportedType)
+        case .continue(_): throw OmniRemotingError<TErrorMessage>.protocolError(.unsupportedType)
         case .complete(let param):
-            let result = await callback(param)
-            switch result {
-            case .success(let result):
-                let result = OmniRemotingPacketMessage<TResult, TError>.complete(result)
-                var bytes = try result.export()
+            switch await callback(param) {
+            case .success(let message):
+                let message = OmniRemotingPacketMessage<TSuccessMessage, TErrorMessage>.complete(message)
+                var bytes = try message.export()
                 try await self.sender.send(&bytes)
-            case .failure(let error):
-                let error = OmniRemotingPacketMessage<TResult, TError>.error(error)
-                var bytes = try error.export()
+            case .error(let error_message):
+                let error_message = OmniRemotingPacketMessage<TSuccessMessage, TErrorMessage>.error(error_message)
+                var bytes = try error_message.export()
                 try await self.sender.send(&bytes)
             }
         case .error(let received_error_message):
-            throw OmniRemotingError<TError>.applicationError(received_error_message)
+            throw OmniRemotingError<TErrorMessage>.applicationError(received_error_message)
         }
+    }
+
+    public func listen_stream() async throws -> OmniRemotingStream<TErrorMessage> {
+        return OmniRemotingStream<TErrorMessage>(sender: self.sender, receiver: self.receiver)
     }
 }

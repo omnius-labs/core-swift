@@ -113,41 +113,41 @@ struct Constants {
         buf.writeInteger(Constants.INT8_CODE)
 
         // 8
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt8(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt8(&buf)
         }
 
         // 16
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt16(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt16(&buf)
         }
 
         // 32
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt32(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt32(&buf)
         }
 
         // 64
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt64(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt64(&buf)
         }
@@ -159,31 +159,31 @@ struct Constants {
         buf.writeInteger(Constants.INT16_CODE)
 
         // 16
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt16(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt16(&buf)
         }
 
         // 32
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt32(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt32(&buf)
         }
 
         // 64
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt64(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt64(&buf)
         }
@@ -195,21 +195,21 @@ struct Constants {
         buf.writeInteger(Constants.INT32_CODE)
 
         // 32
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt32(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt32(&buf)
         }
 
         // 64
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt64(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt64(&buf)
         }
@@ -221,11 +221,11 @@ struct Constants {
         buf.writeInteger(Constants.INT64_CODE)
 
         // 64
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getUInt64(&buf)
         }
-        #expect(throws: VarintError.tooSmallBody) {
+        #expect(throws: VarintError.tooSmall) {
             var buf = buf
             _ = try Varint.getInt64(&buf)
         }
