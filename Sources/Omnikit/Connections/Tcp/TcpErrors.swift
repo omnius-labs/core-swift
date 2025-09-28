@@ -1,4 +1,4 @@
 enum TcpError: Error {
     case notConnected
-    case internalError
+    case `internal`
 }

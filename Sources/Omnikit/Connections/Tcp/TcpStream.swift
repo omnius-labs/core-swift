@@ -2,9 +2,9 @@ import Dispatch
 import NIO
 import Semaphore
 
-public actor TcpClient: AsyncSend, AsyncReceive, @unchecked Sendable {
+public actor TcpStream: AsyncSend, AsyncReceive, @unchecked Sendable {
     private let channel: Channel
-    private let receivedDataQueue: AsyncQueue<TcpClientReceivedData>
+    private let receivedDataQueue: AsyncQueue<TcpStreamReceivedData>
 
     init(channel: Channel) {
         self.channel = channel
@@ -45,12 +45,12 @@ public actor TcpClient: AsyncSend, AsyncReceive, @unchecked Sendable {
         }
     }
 
-    nonisolated func enqueueReceive(_ data: TcpClientReceivedData) {
+    nonisolated func enqueueReceive(_ data: TcpStreamReceivedData) {
         self.receivedDataQueue.enqueue(data)
     }
 }
 
-enum TcpClientReceivedData: Sendable {
+enum TcpStreamReceivedData: Sendable {
     case bytes(ByteBufferWrapper)
     case inactive
 }

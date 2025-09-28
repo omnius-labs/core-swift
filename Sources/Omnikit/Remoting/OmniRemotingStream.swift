@@ -2,8 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingStream<TErrorMessage>
-where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
+public class OmniRemotingStream {
     private let sender: FramedSender
     private let receiver: FramedReceiver
 
@@ -12,19 +11,19 @@ where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
         self.receiver = receiver
     }
 
-    public func send<TMessage>(_ packet: OmniRemotingPacketMessage<TMessage, TErrorMessage>) async throws
+    public func send<T>(_ message: T) async throws
     where
-        TMessage: RocketMessage
+        T: RocketMessage
     {
-        var sendingBytes = try packet.export()
+        var sendingBytes = try message.export()
         try await sender.send(&sendingBytes)
     }
 
-    public func receive<TMessage>() async throws -> OmniRemotingPacketMessage<TMessage, TErrorMessage>
+    public func receive<T>() async throws -> T
     where
-        TMessage: RocketMessage
+        T: RocketMessage
     {
         var receivedBytes = try await self.receiver.receive()
-        return try OmniRemotingPacketMessage<TMessage, TErrorMessage>.import(&receivedBytes)
+        return try T.import(&receivedBytes)
     }
 }

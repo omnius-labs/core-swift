@@ -5,16 +5,16 @@ import Semaphore
 public final class TcpConnector: @unchecked Sendable {
     private let eventLoopGroup: EventLoopGroup
     private let clientBootstrap: ClientBootstrap
-    private let handler: TcpClientChannelInboundHandler
+    private let handler: TcpStreamChannelInboundHandler
     private let dispatchQueue = DispatchQueue(label: "TcpConnector")
 
-    private var tcpClientManager = TcpClientManager()
+    private var tcpStreamManager = TcpStreamManager()
 
     public init() {
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 
-        let handler = TcpClientChannelInboundHandler(
-            tcpClientManager: self.tcpClientManager, dispatchQueue: self.dispatchQueue)
+        let handler = TcpStreamChannelInboundHandler(
+            tcpStreamManager: self.tcpStreamManager, dispatchQueue: self.dispatchQueue)
         self.clientBootstrap = ClientBootstrap(group: self.eventLoopGroup)
             .channelOption(.socketOption(.so_reuseaddr), value: 1)
             .channelOption(.maxMessagesPerRead, value: 16)
@@ -26,20 +26,20 @@ public final class TcpConnector: @unchecked Sendable {
         self.handler = handler
     }
 
-    public func connect(host: String, port: Int) async throws -> TcpClient {
+    public func connect(host: String, port: Int) async throws -> TcpStream {
         let channel = try await self.clientBootstrap.connect(host: host, port: port).get()
-        return self.tcpClientManager.get(channel)
+        return self.tcpStreamManager.get(channel)
     }
 }
 
-final class TcpClientChannelInboundHandler: ChannelInboundHandler, @unchecked Sendable {
+final class TcpStreamChannelInboundHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
 
-    private var tcpClientManager: TcpClientManager
+    private var tcpStreamManager: TcpStreamManager
     private let dispatchQueue: DispatchQueue
 
-    init(tcpClientManager: TcpClientManager, dispatchQueue: DispatchQueue) {
-        self.tcpClientManager = tcpClientManager
+    init(tcpStreamManager: TcpStreamManager, dispatchQueue: DispatchQueue) {
+        self.tcpStreamManager = tcpStreamManager
         self.dispatchQueue = dispatchQueue
     }
 
@@ -48,12 +48,12 @@ final class TcpClientChannelInboundHandler: ChannelInboundHandler, @unchecked Se
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let buffer = self.unwrapInboundIn(data)
-        let tcpClient = self.tcpClientManager.get(context.channel)
-        tcpClient.enqueueReceive(.bytes(ByteBufferWrapper(buffer)))
+        let tcpStream = self.tcpStreamManager.get(context.channel)
+        tcpStream.enqueueReceive(.bytes(ByteBufferWrapper(buffer)))
     }
 
     func channelInactive(context: ChannelHandlerContext) {
-        let tcpClient = self.tcpClientManager.get(context.channel)
-        tcpClient.enqueueReceive(.inactive)
+        let tcpStream = self.tcpStreamManager.get(context.channel)
+        tcpStream.enqueueReceive(.inactive)
     }
 }
