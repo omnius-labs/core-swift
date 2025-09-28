@@ -8,10 +8,10 @@ import Testing
 @Test
 func framedSendReceiveDuplexTest() async throws {
     let allocator = ByteBufferAllocator()
-    let (endpointA, endpointB) = DuplexStream.create(allocator: allocator)
+    let (stream1, stream2) = DuplexStream.createPair(allocator: allocator)
 
-    let senderA = FramedSender(endpointA, allocator: allocator)
-    let receiverB = FramedReceiver(endpointB, maxFrameLength: 1024, allocator: allocator)
+    let senderA = FramedSender(stream1, allocator: allocator)
+    let receiverB = FramedReceiver(stream2, maxFrameLength: 1024, allocator: allocator)
 
     var messageA = allocator.buffer(string: "Hello, World! 1")
     try await senderA.send(&messageA)
@@ -20,8 +20,8 @@ func framedSendReceiveDuplexTest() async throws {
     let textB = receivedB.readString(length: receivedB.readableBytes)
     #expect(textB == "Hello, World! 1")
 
-    let senderB = FramedSender(endpointB, allocator: allocator)
-    let receiverA = FramedReceiver(endpointA, maxFrameLength: 1024, allocator: allocator)
+    let senderB = FramedSender(stream2, allocator: allocator)
+    let receiverA = FramedReceiver(stream1, maxFrameLength: 1024, allocator: allocator)
 
     var messageB = allocator.buffer(string: "Hello, World! 2")
     try await senderB.send(&messageB)
@@ -30,6 +30,6 @@ func framedSendReceiveDuplexTest() async throws {
     let textA = receivedA.readString(length: receivedA.readableBytes)
     #expect(textA == "Hello, World! 2")
 
-    endpointA.close()
-    endpointB.close()
+    stream1.close()
+    stream2.close()
 }

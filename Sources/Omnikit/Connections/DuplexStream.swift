@@ -10,7 +10,7 @@ public final class DuplexStream: AsyncSend, AsyncReceive, @unchecked Sendable {
     private var pendingBuffer: ByteBuffer?
     private var closed = false
 
-    public static func create(allocator: ByteBufferAllocator = ByteBufferAllocator()) -> (DuplexStream, DuplexStream) {
+    public static func createPair(allocator: ByteBufferAllocator = ByteBufferAllocator()) -> (DuplexStream, DuplexStream) {
         let x = AsyncQueue<ByteBuffer>()
         let y = AsyncQueue<ByteBuffer>()
 

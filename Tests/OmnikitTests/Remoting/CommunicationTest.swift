@@ -22,14 +22,14 @@ func communicationStreamTest() async throws {
     let allocator = ByteBufferAllocator()
     let maxFrameLength = 1_024 * 1_024
     let functionId: UInt32 = 1
-    let (callerEndpoint, listenerEndpoint) = DuplexStream.create(allocator: allocator)
-    defer { callerEndpoint.close() }
+    let (callerStream, listenerStream) = DuplexStream.createPair(allocator: allocator)
+    defer { callerStream.close() }
 
     let listenerTask = Task { () throws -> UInt32 in
-        defer { listenerEndpoint.close() }
+        defer { listenerStream.close() }
 
-        let sender = FramedSender(listenerEndpoint, allocator: allocator)
-        let receiver = FramedReceiver(listenerEndpoint, maxFrameLength: maxFrameLength, allocator: allocator)
+        let sender = FramedSender(listenerStream, allocator: allocator)
+        let receiver = FramedReceiver(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
 
         var helloBytes = try await receiver.receive()
         let hello = try OmniRemotingHelloMessage.import(&helloBytes)
@@ -46,8 +46,8 @@ func communicationStreamTest() async throws {
         return hello.functionId
     }
 
-    let sender = FramedSender(callerEndpoint, allocator: allocator)
-    let receiver = FramedReceiver(callerEndpoint, maxFrameLength: maxFrameLength, allocator: allocator)
+    let sender = FramedSender(callerStream, allocator: allocator)
+    let receiver = FramedReceiver(callerStream, maxFrameLength: maxFrameLength, allocator: allocator)
     let stream = OmniRemotingStream(sender: sender, receiver: receiver)
 
     let hello = OmniRemotingHelloMessage(version: .v1, functionId: functionId)
