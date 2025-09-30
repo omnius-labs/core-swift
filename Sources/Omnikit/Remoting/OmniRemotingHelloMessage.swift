@@ -3,8 +3,8 @@ import NIO
 import RocketPack
 
 enum OmniRemotingVersion: String {
-    case unknown = "Unknown"
-    case v1 = "V1"
+    case unknown = "unknown"
+    case v1 = "v1"
 }
 
 struct OmniRemotingHelloMessage: RocketMessage, Equatable {
