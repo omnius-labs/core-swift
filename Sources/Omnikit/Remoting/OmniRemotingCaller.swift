@@ -2,8 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingCaller<TErrorMessage>
-where TErrorMessage: RocketMessage & CustomStringConvertible & Sendable {
+public class OmniRemotingCaller {
     private let tcpStream: TcpStream
     private let sender: FramedSender
     private let receiver: FramedReceiver

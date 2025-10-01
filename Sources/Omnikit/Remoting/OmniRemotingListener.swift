@@ -2,12 +2,6 @@ import Foundation
 import NIO
 import RocketPack
 
-public enum OmniRemotingListenResult<T, E>
-where T: RocketMessage, E: RocketMessage & CustomStringConvertible & Sendable {
-    case success(T)
-    case error(E)
-}
-
 public class OmniRemotingListener {
     private let tcpStream: TcpStream
     private let sender: FramedSender
