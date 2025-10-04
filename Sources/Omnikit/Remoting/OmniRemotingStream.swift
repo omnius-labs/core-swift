@@ -2,7 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingStream {
+public actor OmniRemotingStream {
     private let sender: FramedSender
     private let receiver: FramedReceiver
 

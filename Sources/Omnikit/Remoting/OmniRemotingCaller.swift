@@ -2,12 +2,12 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingCaller: @unchecked Sendable {
+public actor OmniRemotingCaller {
     private let tcpStream: TcpStream
     private let sender: FramedSender
     private let receiver: FramedReceiver
 
-    public let functionId: UInt32
+    public nonisolated let functionId: UInt32
 
     public static func create(tcpStream: TcpStream, functionId: UInt32, maxFrameLength: Int, allocator: ByteBufferAllocator) async throws -> Self {
         let caller = Self(tcpStream: tcpStream, functionId: functionId, maxFrameLength: maxFrameLength, allocator: allocator)
@@ -15,7 +15,7 @@ public class OmniRemotingCaller: @unchecked Sendable {
         return caller
     }
 
-    required init(tcpStream: TcpStream, functionId: UInt32, maxFrameLength: Int, allocator: ByteBufferAllocator) {
+    init(tcpStream: TcpStream, functionId: UInt32, maxFrameLength: Int, allocator: ByteBufferAllocator) {
         self.tcpStream = tcpStream
         self.functionId = functionId
         self.sender = FramedSender(tcpStream, allocator: allocator)

@@ -2,7 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingListener {
+public actor OmniRemotingListener {
     private let tcpStream: TcpStream
     private let sender: FramedSender
     private let receiver: FramedReceiver
@@ -15,7 +15,7 @@ public class OmniRemotingListener {
         return listener
     }
 
-    required init(tcpStream: TcpStream, maxFrameLength: Int, allocator: ByteBufferAllocator) {
+    init(tcpStream: TcpStream, maxFrameLength: Int, allocator: ByteBufferAllocator) {
         self.tcpStream = tcpStream
         self.sender = FramedSender(tcpStream, allocator: allocator)
         self.receiver = FramedReceiver(tcpStream, maxFrameLength: maxFrameLength, allocator: allocator)
