@@ -2,7 +2,7 @@ import Foundation
 import NIO
 import RocketPack
 
-public class OmniRemotingCaller {
+public class OmniRemotingCaller: @unchecked Sendable {
     private let tcpStream: TcpStream
     private let sender: FramedSender
     private let receiver: FramedReceiver
