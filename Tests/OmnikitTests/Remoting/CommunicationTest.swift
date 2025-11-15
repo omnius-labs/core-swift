@@ -4,15 +4,17 @@ import Testing
 
 @testable import Omnikit
 
-private struct CommunicationTestMessage: RocketMessage, Equatable, Sendable {
+private struct CommunicationTestMessage: Equatable, Sendable {
     let value: Int32
+}
 
-    static func pack(_ bytes: inout ByteBuffer, value: Self, depth: UInt32) throws {
-        RocketMessageWriter.putInt32(value.value, &bytes)
+extension CommunicationTestMessage: RocketPackStruct {
+    static func pack(encoder: any RocketPack.RocketPackEncoder, value: CommunicationTestMessage) throws {
+        try encoder.writeI32(value.value)
     }
 
-    static func unpack(_ bytes: inout ByteBuffer, depth: UInt32) throws -> Self {
-        let value = try RocketMessageReader.getInt32(&bytes)
+    static func unpack(decoder: any RocketPack.RocketPackDecoder) throws -> CommunicationTestMessage {
+        let value = try decoder.readI32()
         return Self(value: value)
     }
 }
@@ -31,8 +33,8 @@ func communicationStreamTest() async throws {
         let sender = FramedSender(listenerStream, allocator: allocator)
         let receiver = FramedReceiver(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
 
-        var helloBytes = try await receiver.receive()
-        let hello = try OmniRemotingHelloMessage.import(&helloBytes)
+        let helloBytes = try await receiver.receive()
+        let hello = try OmniRemotingHelloMessage.import(helloBytes)
 
         #expect(hello.version == .v1)
         #expect(hello.functionId == functionId)
@@ -51,8 +53,8 @@ func communicationStreamTest() async throws {
     let stream = OmniRemotingStream(sender: sender, receiver: receiver)
 
     let hello = OmniRemotingHelloMessage(version: .v1, functionId: functionId)
-    var helloBuffer = try hello.export()
-    try await sender.send(&helloBuffer)
+    let helloBuffer = ByteBuffer(bytes: try hello.export())
+    try await sender.send(helloBuffer)
 
     try await stream.send(CommunicationTestMessage(value: 1))
     let response: CommunicationTestMessage = try await stream.receive()

@@ -13,17 +13,18 @@ public actor OmniRemotingStream {
 
     public func send<T>(_ message: T) async throws
     where
-        T: RocketMessage
+        T: RocketPackStruct
     {
-        var sendingBytes = try message.export()
-        try await sender.send(&sendingBytes)
+        let sendingBytes = ByteBuffer(bytes: try message.export())
+        try await sender.send(sendingBytes)
     }
 
     public func receive<T>() async throws -> T
     where
-        T: RocketMessage
+        T: RocketPackStruct
     {
-        var receivedBytes = try await self.receiver.receive()
-        return try T.import(&receivedBytes)
+        let receivedBytes = try await self.receiver.receive()
+        let bytes = Array(receivedBytes.readableBytesView)
+        return try T.import(bytes)
     }
 }

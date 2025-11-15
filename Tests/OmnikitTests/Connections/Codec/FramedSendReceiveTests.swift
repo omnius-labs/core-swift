@@ -13,8 +13,8 @@ func framedSendReceiveDuplexTest() async throws {
     let senderA = FramedSender(stream1, allocator: allocator)
     let receiverB = FramedReceiver(stream2, maxFrameLength: 1024, allocator: allocator)
 
-    var messageA = allocator.buffer(string: "Hello, World! 1")
-    try await senderA.send(&messageA)
+    let messageA = allocator.buffer(string: "Hello, World! 1")
+    try await senderA.send(messageA)
 
     var receivedB = try await receiverB.receive()
     let textB = receivedB.readString(length: receivedB.readableBytes)
@@ -23,8 +23,8 @@ func framedSendReceiveDuplexTest() async throws {
     let senderB = FramedSender(stream2, allocator: allocator)
     let receiverA = FramedReceiver(stream1, maxFrameLength: 1024, allocator: allocator)
 
-    var messageB = allocator.buffer(string: "Hello, World! 2")
-    try await senderB.send(&messageB)
+    let messageB = allocator.buffer(string: "Hello, World! 2")
+    try await senderB.send(messageB)
 
     var receivedA = try await receiverA.receive()
     let textA = receivedA.readString(length: receivedA.readableBytes)

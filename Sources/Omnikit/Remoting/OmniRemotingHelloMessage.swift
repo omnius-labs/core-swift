@@ -7,7 +7,7 @@ enum OmniRemotingVersion: String {
     case v1 = "v1"
 }
 
-struct OmniRemotingHelloMessage: RocketMessage, Equatable {
+struct OmniRemotingHelloMessage: Equatable {
     public let version: OmniRemotingVersion
     public let functionId: UInt32
 
@@ -15,19 +15,48 @@ struct OmniRemotingHelloMessage: RocketMessage, Equatable {
         self.version = version
         self.functionId = functionId
     }
+}
 
-    public static func pack(
-        _ bytes: inout ByteBuffer, value: OmniRemotingHelloMessage, depth: UInt32
-    ) throws {
-        RocketMessageWriter.putString(value.version.rawValue, &bytes)
-        RocketMessageWriter.putUInt32(value.functionId, &bytes)
+extension OmniRemotingHelloMessage: RocketPackStruct {
+    static func pack(encoder: any RocketPack.RocketPackEncoder, value: OmniRemotingHelloMessage) throws {
+        try encoder.writeMap(2)
+
+        try encoder.writeU64(0)
+        try encoder.writeString(value.version.rawValue)
+
+        try encoder.writeU64(1)
+        try encoder.writeU32(value.functionId)
     }
 
-    public static func unpack(_ bytes: inout ByteBuffer, depth: UInt32) throws
-        -> OmniRemotingHelloMessage
-    {
-        let version = OmniRemotingVersion(rawValue: try RocketMessageReader.getString(&bytes, 1024)) ?? .unknown
-        let functionId = try RocketMessageReader.getUInt32(&bytes)
+    static func unpack(decoder: any RocketPack.RocketPackDecoder) throws -> OmniRemotingHelloMessage {
+        var version: OmniRemotingVersion?
+        var functionId: UInt32?
+
+        let count = try decoder.readMap()
+
+        for _ in 0..<count {
+            switch try decoder.readU64() {
+            case 0:
+                let rawVersion = try decoder.readString()
+                guard let parsedVersion = OmniRemotingVersion(rawValue: rawVersion) else {
+                    throw RocketPackDecoderError.other("parse error")
+                }
+                version = parsedVersion
+            case 1:
+                functionId = try decoder.readU32()
+            default:
+                try decoder.skipField()
+            }
+        }
+
+        guard let version else {
+            throw RocketPackDecoderError.other("missing field: version")
+        }
+
+        guard let functionId else {
+            throw RocketPackDecoderError.other("missing field: function_id")
+        }
+
         return OmniRemotingHelloMessage(version: version, functionId: functionId)
     }
 }

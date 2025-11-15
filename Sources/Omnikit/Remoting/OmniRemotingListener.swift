@@ -22,8 +22,8 @@ public actor OmniRemotingListener {
     }
 
     private func handshake() async throws {
-        var bytes = try await self.receiver.receive()
-        let helloMessage = try OmniRemotingHelloMessage.import(&bytes)
+        let bytes = try await self.receiver.receive()
+        let helloMessage = try OmniRemotingHelloMessage.import(bytes)
 
         if helloMessage.version == .v1 {
             self.functionId = helloMessage.functionId

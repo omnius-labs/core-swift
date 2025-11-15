@@ -24,8 +24,8 @@ public actor OmniRemotingCaller {
 
     private func handshake() async throws {
         let helloMessage = OmniRemotingHelloMessage(version: .v1, functionId: self.functionId)
-        var bytes = try helloMessage.export()
-        try await self.sender.send(&bytes)
+        let bytes = ByteBuffer(bytes: try helloMessage.export())
+        try await self.sender.send(bytes)
     }
 
     public func close() async throws {

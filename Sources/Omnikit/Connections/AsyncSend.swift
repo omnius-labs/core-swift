@@ -1,5 +1,5 @@
 import NIO
 
 public protocol AsyncSend {
-    func send(_ buffer: inout ByteBuffer) async throws
+    func send(_ buffer: ByteBuffer) async throws
 }

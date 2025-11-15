@@ -15,7 +15,7 @@ public actor TcpStream: AsyncSend, AsyncReceive, @unchecked Sendable {
         try await self.channel.close().get()
     }
 
-    public func send(_ buffer: inout ByteBuffer) async throws {
+    public func send(_ buffer: ByteBuffer) async throws {
         try await self.channel.writeAndFlush(buffer).get()
     }
 

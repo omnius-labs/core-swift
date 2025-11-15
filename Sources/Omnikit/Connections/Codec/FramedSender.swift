@@ -13,12 +13,12 @@ public final class FramedSender: @unchecked Sendable {
         self.allocator = allocator
     }
 
-    public func send(_ buffer: inout ByteBuffer) async throws {
+    public func send(_ buffer: ByteBuffer) async throws {
         let frameLength = buffer.readableBytes
         var header = self.allocator.buffer(capacity: Self.headerSize)
         header.writeInteger(UInt32(frameLength), endianness: .little)
-        try await self.sender.send(&header)
+        try await self.sender.send(header)
 
-        try await self.sender.send(&buffer)
+        try await self.sender.send(buffer)
     }
 }

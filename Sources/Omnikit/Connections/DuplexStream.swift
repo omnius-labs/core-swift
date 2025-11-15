@@ -25,7 +25,7 @@ public final class DuplexStream: AsyncSend, AsyncReceive, @unchecked Sendable {
         self.allocator = allocator
     }
 
-    public func send(_ buffer: inout ByteBuffer) async throws {
+    public func send(_ buffer: ByteBuffer) async throws {
         if self.isClosed {
             return
         }
