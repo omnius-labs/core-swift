@@ -59,261 +59,291 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
     }
 
     public func currentType() throws -> FieldType {
-        let byte = try currentRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
         return try typeOf(major: major, info: info)
     }
 
     public func readBool() throws -> Bool {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
         switch (major, info) {
         case (7, 20): return false
         case (7, 21): return true
         default:
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
     public func readU8() throws -> UInt8 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
         switch (major, info) {
-        case (0, 0...23):
-            return info
-        case (0, 24):
-            return try readInteger(UInt8.self)
-        default:
-            throw try mismatchError(position: p, major: major, info: info)
+        case (0, 0...23): return info
+        case (0, 24): return try readRawFixed(UInt8.self)
+        default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
     public func readU16() throws -> UInt16 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
         switch (major, info) {
-        case (0, 0...23):
-            return UInt16(info)
-        case (0, 24):
-            return UInt16(try readInteger(UInt8.self))
-        case (0, 25):
-            return try readInteger(UInt16.self)
-        default:
-            throw try mismatchError(position: p, major: major, info: info)
+        case (0, 0...23): return UInt16(info)
+        case (0, 24): return UInt16(try readRawFixed(UInt8.self))
+        case (0, 25): return try readRawFixed(UInt16.self)
+        default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
     public func readU32() throws -> UInt32 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
         switch (major, info) {
-        case (0, 0...23):
-            return UInt32(info)
-        case (0, 24):
-            return UInt32(try readInteger(UInt8.self))
-        case (0, 25):
-            return UInt32(try readInteger(UInt16.self))
-        case (0, 26):
-            return try readInteger(UInt32.self)
-        default:
-            throw try mismatchError(position: p, major: major, info: info)
+        case (0, 0...23): return UInt32(info)
+        case (0, 24): return UInt32(try readRawFixed(UInt8.self))
+        case (0, 25): return UInt32(try readRawFixed(UInt16.self))
+        case (0, 26): return try readRawFixed(UInt32.self)
+        default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
     public func readU64() throws -> UInt64 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
         switch (major, info) {
-        case (0, 0...23):
-            return UInt64(info)
-        case (0, 24):
-            return UInt64(try readInteger(UInt8.self))
-        case (0, 25):
-            return UInt64(try readInteger(UInt16.self))
-        case (0, 26):
-            return UInt64(try readInteger(UInt32.self))
-        case (0, 27):
-            return try readInteger(UInt64.self)
-        default:
-            throw try mismatchError(position: p, major: major, info: info)
+        case (0, 0...23): return UInt64(info)
+        case (0, 24): return UInt64(try readRawFixed(UInt8.self))
+        case (0, 25): return UInt64(try readRawFixed(UInt16.self))
+        case (0, 26): return UInt64(try readRawFixed(UInt32.self))
+        case (0, 27): return try readRawFixed(UInt64.self)
+        default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
     public func readI8() throws -> Int8 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
-        switch major {
-        case 0:
-            guard let value = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        switch (major, info) {
+        case (0, 0...23):
+            return Int8(info)
+        case (0, 24):
+            let v: UInt8 = try readRawFixed(UInt8.self)
+            return Int8(bitPattern: v)
+        case (1, 0...23):
+            return -1 - Int8(info)
+        case (1, 24...28):
+            if (try currentRawByte() & 0x80) != 0x80 {
+                if info == 24 {
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int8(bitPattern: v)
+                }
             }
-            guard value <= UInt64(Int8.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard let result = Int8(exactly: Int64(value)) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return result
-        case 1:
-            guard let magnitude = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard magnitude <= UInt64(Int8.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            let signed = -1 - Int64(magnitude)
-            guard let value = Int8(exactly: signed) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return value
-        default:
-            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        default: break
         }
+        throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
     public func readI16() throws -> Int16 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
-        switch major {
-        case 0:
-            guard let value = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        switch (major, info) {
+        case (0, 0...23):
+            return Int16(info)
+        case (0, 24):
+            let v: UInt8 = try readRawFixed(UInt8.self)
+            return Int16(v)
+        case (0, 25):
+            let v: UInt16 = try readRawFixed(UInt16.self)
+            return Int16(bitPattern: v)
+        case (1, 0...23):
+            return -1 - Int16(info)
+        case (1, 24...28):
+            if (try currentRawByte() & 0x80) != 0x80 {
+                switch info {
+                case 24:
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int16(bitPattern: UInt16(v))
+                case 25:
+                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    return -1 - Int16(bitPattern: v)
+                default: break
+                }
+            } else {
+                if info == 24 {
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int16(bitPattern: UInt16(v))
+                }
             }
-            guard value <= UInt64(Int16.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard let result = Int16(exactly: Int64(value)) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return result
-        case 1:
-            guard let magnitude = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard magnitude <= UInt64(Int16.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            let signed = -1 - Int64(magnitude)
-            guard let value = Int16(exactly: signed) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return value
-        default:
-            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        default: break
         }
+        throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
     public func readI32() throws -> Int32 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
-        switch major {
-        case 0:
-            guard let value = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        switch (major, info) {
+        case (0, 0...23):
+            return Int32(info)
+        case (0, 24):
+            let v: UInt8 = try readRawFixed(UInt8.self)
+            return Int32(v)
+        case (0, 25):
+            let v: UInt16 = try readRawFixed(UInt16.self)
+            return Int32(v)
+        case (0, 26):
+            let v: UInt32 = try readRawFixed(UInt32.self)
+            return Int32(bitPattern: v)
+        case (1, 0...23):
+            return -1 - Int32(info)
+        case (1, 24...28):
+            if (try currentRawByte() & 0x80) != 0x80 {
+                switch info {
+                case 24:
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int32(v)
+                case 25:
+                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    return -1 - Int32(v)
+                case 26:
+                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    return -1 - Int32(bitPattern: v)
+                default: break
+                }
+            } else {
+                switch info {
+                case 24:
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int32(v)
+                case 25:
+                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    return -1 - Int32(v)
+                default: break
+                }
             }
-            guard value <= UInt64(Int32.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard let result = Int32(exactly: Int64(value)) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return result
-        case 1:
-            guard let magnitude = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard magnitude <= UInt64(Int32.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            let signed = -1 - Int64(magnitude)
-            guard let value = Int32(exactly: signed) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return value
-        default:
-            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        default: break
         }
+        throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
     public func readI64() throws -> Int64 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
 
-        switch major {
-        case 0:
-            guard let value = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        switch (major, info) {
+        case (0, 0...23):
+            return Int64(info)
+        case (0, 24):
+            let v: UInt8 = try readRawFixed(UInt8.self)
+            return Int64(v)
+        case (0, 25):
+            let v: UInt16 = try readRawFixed(UInt16.self)
+            return Int64(v)
+        case (0, 26):
+            let v: UInt32 = try readRawFixed(UInt32.self)
+            return Int64(v)
+        case (0, 27):
+            let v: UInt64 = try readRawFixed(UInt64.self)
+            return Int64(bitPattern: v)
+        case (1, 0...23):
+            return -1 - Int64(info)
+        case (1, 24...28):
+            if (try currentRawByte() & 0x80) != 0x80 {
+                switch info {
+                case 24:
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int64(v)
+                case 25:
+                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    return -1 - Int64(v)
+                case 26:
+                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    return -1 - Int64(v)
+                case 27:
+                    let v: UInt64 = try readRawFixed(UInt64.self)
+                    return -1 - Int64(bitPattern: v)
+                default: break
+                }
+            } else {
+                switch info {
+                case 24:
+                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    return -1 - Int64(v)
+                case 25:
+                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    return -1 - Int64(v)
+                case 26:
+                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    return -1 - Int64(v)
+                default: break
+                }
             }
-            guard value <= UInt64(Int64.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            return Int64(value)
-        case 1:
-            guard let magnitude = try readRawLen(info: info) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            guard magnitude <= UInt64(Int64.max) else {
-                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
-            }
-            let signed = -1 - Int64(magnitude)
-            return signed
-        default:
-            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
+        default: break
         }
+
+        throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
     public func readF32() throws -> Float {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard (major, info) == (7, 26) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
-        let bits: UInt32 = try readInteger(UInt32.self)
+        let bits: UInt32 = try readRawFixed(UInt32.self)
         return Float(bitPattern: bits)
     }
 
     public func readF64() throws -> Double {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard (major, info) == (7, 27) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
-        let bits: UInt64 = try readInteger(UInt64.self)
+        let bits: UInt64 = try readRawFixed(UInt64.self)
         return Double(bitPattern: bits)
     }
 
     public func readBytes() throws -> [UInt8] {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard major == 2 else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         guard let len = try readRawLen(info: info) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         let count = try convertToLength(len, position: p)
         return try readRawBytes(count: count)
@@ -325,13 +355,14 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
     public func readString() throws -> String {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard major == 3 else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         guard let len = try readRawLen(info: info) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         let count = try convertToLength(len, position: p)
         let bytes = try readRawBytes(count: count)
@@ -343,36 +374,39 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
     public func readArray() throws -> UInt64 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard major == 4 else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         guard let len = try readRawLen(info: info) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         return len
     }
 
     public func readMap() throws -> UInt64 {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard major == 5 else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         guard let len = try readRawLen(info: info) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
         return len
     }
 
     public func readNull() throws {
         let p = cursor
-        let byte = try readRawByte()
-        let (major, info) = decompose(byte)
+        let (major, info) = decompose(try currentRawByte())
+        let fieldType = try typeOf(major: major, info: info)
+        try skipRawBytes(count: 1)
         guard (major, info) == (7, 22) else {
-            throw try mismatchError(position: p, major: major, info: info)
+            throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
 
@@ -385,8 +419,9 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
         while remainingFields > 0 {
             let p = cursor
-            let byte = try readRawByte()
-            let (major, info) = decompose(byte)
+            let (major, info) = decompose(try currentRawByte())
+            let fieldType = try typeOf(major: major, info: info)
+            try skipRawBytes(count: 1)
 
             let additional: UInt64?
             switch major {
@@ -411,7 +446,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
                 additional = try readRawLen(info: info)
             case 4:
                 guard let count = try readRawLen(info: info) else {
-                    throw try mismatchError(position: p, major: major, info: info)
+                    throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
                 }
                 let addition = remainingFields.addingReportingOverflow(count)
                 if addition.overflow {
@@ -421,7 +456,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
                 additional = 0
             case 5:
                 guard let count = try readRawLen(info: info) else {
-                    throw try mismatchError(position: p, major: major, info: info)
+                    throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
                 }
                 let doubled = count.multipliedReportingOverflow(by: 2)
                 if doubled.overflow {
@@ -451,7 +486,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
             }
 
             guard let len = additional else {
-                throw try mismatchError(position: p, major: major, info: info)
+                throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
             }
 
             let byteCount = try convertToLength(len, position: p)
@@ -465,16 +500,16 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case 0...23:
             return UInt64(info)
         case 24:
-            let value: UInt8 = try readInteger(UInt8.self)
+            let value: UInt8 = try readRawFixed(UInt8.self)
             return UInt64(value)
         case 25:
-            let value: UInt16 = try readInteger(UInt16.self)
+            let value: UInt16 = try readRawFixed(UInt16.self)
             return UInt64(value)
         case 26:
-            let value: UInt32 = try readInteger(UInt32.self)
+            let value: UInt32 = try readRawFixed(UInt32.self)
             return UInt64(value)
         case 27:
-            let value: UInt64 = try readInteger(UInt64.self)
+            let value: UInt64 = try readRawFixed(UInt64.self)
             return value
         default:
             return nil
@@ -520,10 +555,6 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return .unknown(major: major, info: info)
     }
 
-    private func mismatchError(position: Int, major: UInt8, info: UInt8) throws -> RocketPackDecoderError {
-        .mismatchFieldType(position: position, fieldType: try typeOf(major: major, info: info))
-    }
-
     private func convertToLength(_ value: UInt64, position: Int) throws -> Int {
         guard let length = Int(exactly: value) else {
             throw RocketPackDecoderError.lengthOverflow(position: position)
@@ -538,39 +569,35 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
     }
 
     private func currentRawByte() throws -> UInt8 {
-        guard cursor < buffer.count else {
+        guard remaining >= 1 else {
             throw RocketPackDecoderError.unexpectedEof
         }
         return buffer[cursor]
     }
 
     private func peekRawByte() throws -> UInt8 {
-        guard cursor + 1 < buffer.count else {
+        guard remaining >= 2 else {
             throw RocketPackDecoderError.unexpectedEof
         }
         return buffer[cursor + 1]
     }
 
-    private func readRawByte() throws -> UInt8 {
-        guard cursor < buffer.count else {
+    private func readRawFixed<T>(_ type: T.Type) throws -> T where T: FixedWidthInteger & UnsignedInteger {
+        let count = MemoryLayout<T>.size
+        guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
-        let byte = buffer[cursor]
-        cursor += 1
-        return byte
-    }
-
-    private func readInteger<T: FixedWidthInteger>(_ type: T.Type) throws -> T {
-        let count = MemoryLayout<T>.size
-        let bytes = try readRawBytes(count: count)
-        let raw = bytes.withUnsafeBytes { ptr in
-            ptr.load(as: T.self)
+        var value: T = 0
+        let end = cursor + count
+        for byte in buffer[cursor..<end] {
+            value = (value << 8) | T(byte)
         }
-        return T(bigEndian: raw)
+        cursor = end
+        return value
     }
 
     private func readRawBytes(count: Int) throws -> [UInt8] {
-        guard count <= remaining else {
+        guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
         let end = cursor + count
@@ -580,7 +607,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
     }
 
     private func skipRawBytes(count: Int) throws {
-        guard count <= remaining else {
+        guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
         cursor += count
