@@ -1,9 +1,21 @@
+# macOS
 .DS_Store
-/.build
-/Packages
+
+# SwiftPM
+.build/
+.swiftpm/
+Packages/
+
+# Xcode
 xcuserdata/
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.playground/workspace.xcworkspace/xcuserdata/
+*.xcscmblueprint
+
+# etc
 .netrc
 .modulecache
+.clang-module-cache
+.swift-module-cache

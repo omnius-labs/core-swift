@@ -85,7 +85,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
         switch (major, info) {
         case (0, 0...23): return info
-        case (0, 24): return try readRawFixed(UInt8.self)
+        case (0, 24): return try readRawFixedInteger(UInt8.self)
         default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
@@ -98,8 +98,8 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
         switch (major, info) {
         case (0, 0...23): return UInt16(info)
-        case (0, 24): return UInt16(try readRawFixed(UInt8.self))
-        case (0, 25): return try readRawFixed(UInt16.self)
+        case (0, 24): return UInt16(try readRawFixedInteger(UInt8.self))
+        case (0, 25): return try readRawFixedInteger(UInt16.self)
         default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
@@ -112,9 +112,9 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
         switch (major, info) {
         case (0, 0...23): return UInt32(info)
-        case (0, 24): return UInt32(try readRawFixed(UInt8.self))
-        case (0, 25): return UInt32(try readRawFixed(UInt16.self))
-        case (0, 26): return try readRawFixed(UInt32.self)
+        case (0, 24): return UInt32(try readRawFixedInteger(UInt8.self))
+        case (0, 25): return UInt32(try readRawFixedInteger(UInt16.self))
+        case (0, 26): return try readRawFixedInteger(UInt32.self)
         default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
@@ -127,10 +127,10 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
 
         switch (major, info) {
         case (0, 0...23): return UInt64(info)
-        case (0, 24): return UInt64(try readRawFixed(UInt8.self))
-        case (0, 25): return UInt64(try readRawFixed(UInt16.self))
-        case (0, 26): return UInt64(try readRawFixed(UInt32.self))
-        case (0, 27): return try readRawFixed(UInt64.self)
+        case (0, 24): return UInt64(try readRawFixedInteger(UInt8.self))
+        case (0, 25): return UInt64(try readRawFixedInteger(UInt16.self))
+        case (0, 26): return UInt64(try readRawFixedInteger(UInt32.self))
+        case (0, 27): return try readRawFixedInteger(UInt64.self)
         default: throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
     }
@@ -145,14 +145,14 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case (0, 0...23):
             return Int8(info)
         case (0, 24):
-            let v: UInt8 = try readRawFixed(UInt8.self)
+            let v: UInt8 = try readRawFixedInteger(UInt8.self)
             return Int8(bitPattern: v)
         case (1, 0...23):
             return -1 - Int8(info)
         case (1, 24...28):
             if (try currentRawByte() & 0x80) != 0x80 {
                 if info == 24 {
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int8(bitPattern: v)
                 }
             }
@@ -171,10 +171,10 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case (0, 0...23):
             return Int16(info)
         case (0, 24):
-            let v: UInt8 = try readRawFixed(UInt8.self)
+            let v: UInt8 = try readRawFixedInteger(UInt8.self)
             return Int16(v)
         case (0, 25):
-            let v: UInt16 = try readRawFixed(UInt16.self)
+            let v: UInt16 = try readRawFixedInteger(UInt16.self)
             return Int16(bitPattern: v)
         case (1, 0...23):
             return -1 - Int16(info)
@@ -182,16 +182,16 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
             if (try currentRawByte() & 0x80) != 0x80 {
                 switch info {
                 case 24:
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int16(bitPattern: UInt16(v))
                 case 25:
-                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    let v: UInt16 = try readRawFixedInteger(UInt16.self)
                     return -1 - Int16(bitPattern: v)
                 default: break
                 }
             } else {
                 if info == 24 {
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int16(bitPattern: UInt16(v))
                 }
             }
@@ -210,13 +210,13 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case (0, 0...23):
             return Int32(info)
         case (0, 24):
-            let v: UInt8 = try readRawFixed(UInt8.self)
+            let v: UInt8 = try readRawFixedInteger(UInt8.self)
             return Int32(v)
         case (0, 25):
-            let v: UInt16 = try readRawFixed(UInt16.self)
+            let v: UInt16 = try readRawFixedInteger(UInt16.self)
             return Int32(v)
         case (0, 26):
-            let v: UInt32 = try readRawFixed(UInt32.self)
+            let v: UInt32 = try readRawFixedInteger(UInt32.self)
             return Int32(bitPattern: v)
         case (1, 0...23):
             return -1 - Int32(info)
@@ -224,23 +224,23 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
             if (try currentRawByte() & 0x80) != 0x80 {
                 switch info {
                 case 24:
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int32(v)
                 case 25:
-                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    let v: UInt16 = try readRawFixedInteger(UInt16.self)
                     return -1 - Int32(v)
                 case 26:
-                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    let v: UInt32 = try readRawFixedInteger(UInt32.self)
                     return -1 - Int32(bitPattern: v)
                 default: break
                 }
             } else {
                 switch info {
                 case 24:
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int32(v)
                 case 25:
-                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    let v: UInt16 = try readRawFixedInteger(UInt16.self)
                     return -1 - Int32(v)
                 default: break
                 }
@@ -260,16 +260,16 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case (0, 0...23):
             return Int64(info)
         case (0, 24):
-            let v: UInt8 = try readRawFixed(UInt8.self)
+            let v: UInt8 = try readRawFixedInteger(UInt8.self)
             return Int64(v)
         case (0, 25):
-            let v: UInt16 = try readRawFixed(UInt16.self)
+            let v: UInt16 = try readRawFixedInteger(UInt16.self)
             return Int64(v)
         case (0, 26):
-            let v: UInt32 = try readRawFixed(UInt32.self)
+            let v: UInt32 = try readRawFixedInteger(UInt32.self)
             return Int64(v)
         case (0, 27):
-            let v: UInt64 = try readRawFixed(UInt64.self)
+            let v: UInt64 = try readRawFixedInteger(UInt64.self)
             return Int64(bitPattern: v)
         case (1, 0...23):
             return -1 - Int64(info)
@@ -277,29 +277,29 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
             if (try currentRawByte() & 0x80) != 0x80 {
                 switch info {
                 case 24:
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int64(v)
                 case 25:
-                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    let v: UInt16 = try readRawFixedInteger(UInt16.self)
                     return -1 - Int64(v)
                 case 26:
-                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    let v: UInt32 = try readRawFixedInteger(UInt32.self)
                     return -1 - Int64(v)
                 case 27:
-                    let v: UInt64 = try readRawFixed(UInt64.self)
+                    let v: UInt64 = try readRawFixedInteger(UInt64.self)
                     return -1 - Int64(bitPattern: v)
                 default: break
                 }
             } else {
                 switch info {
                 case 24:
-                    let v: UInt8 = try readRawFixed(UInt8.self)
+                    let v: UInt8 = try readRawFixedInteger(UInt8.self)
                     return -1 - Int64(v)
                 case 25:
-                    let v: UInt16 = try readRawFixed(UInt16.self)
+                    let v: UInt16 = try readRawFixedInteger(UInt16.self)
                     return -1 - Int64(v)
                 case 26:
-                    let v: UInt32 = try readRawFixed(UInt32.self)
+                    let v: UInt32 = try readRawFixedInteger(UInt32.self)
                     return -1 - Int64(v)
                 default: break
                 }
@@ -318,7 +318,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         guard (major, info) == (7, 26) else {
             throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
-        let bits: UInt32 = try readRawFixed(UInt32.self)
+        let bits: UInt32 = try readRawFixedInteger(UInt32.self)
         return Float(bitPattern: bits)
     }
 
@@ -330,7 +330,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         guard (major, info) == (7, 27) else {
             throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
         }
-        let bits: UInt64 = try readRawFixed(UInt64.self)
+        let bits: UInt64 = try readRawFixedInteger(UInt64.self)
         return Double(bitPattern: bits)
     }
 
@@ -500,16 +500,16 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         case 0...23:
             return UInt64(info)
         case 24:
-            let value: UInt8 = try readRawFixed(UInt8.self)
+            let value: UInt8 = try readRawFixedInteger(UInt8.self)
             return UInt64(value)
         case 25:
-            let value: UInt16 = try readRawFixed(UInt16.self)
+            let value: UInt16 = try readRawFixedInteger(UInt16.self)
             return UInt64(value)
         case 26:
-            let value: UInt32 = try readRawFixed(UInt32.self)
+            let value: UInt32 = try readRawFixedInteger(UInt32.self)
             return UInt64(value)
         case 27:
-            let value: UInt64 = try readRawFixed(UInt64.self)
+            let value: UInt64 = try readRawFixedInteger(UInt64.self)
             return value
         default:
             return nil
@@ -582,18 +582,18 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return buffer[cursor + 1]
     }
 
-    private func readRawFixed<T>(_ type: T.Type) throws -> T where T: FixedWidthInteger & UnsignedInteger {
+    private func readRawFixedInteger<T>(_ type: T.Type) throws -> T where T: FixedWidthInteger & UnsignedInteger {
         let count = MemoryLayout<T>.size
         guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
-        var value: T = 0
-        let end = cursor + count
-        for byte in buffer[cursor..<end] {
-            value = (value << 8) | T(byte)
+
+        let rawValue: T = buffer.withUnsafeBytes { raw in
+            raw.baseAddress!.advanced(by: cursor).loadUnaligned(as: T.self)
         }
-        cursor = end
-        return value
+
+        cursor += count
+        return T(bigEndian: rawValue)
     }
 
     private func readRawBytes(count: Int) throws -> [UInt8] {
