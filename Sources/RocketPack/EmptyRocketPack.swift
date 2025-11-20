@@ -1,15 +1,13 @@
-public struct EmptyRocketMessage: RocketPackStruct {
+public struct EmptyRocketMessage {
     public init() {}
+}
 
-    public static func pack(encoder: RocketPackEncoder, value: EmptyRocketMessage) throws {
-        _ = encoder
-        _ = value
-        // Nothing to serialize.
+extension EmptyRocketMessage: RocketPackStruct {
+    public static func pack(encoder: any RocketPackEncoder, value: Self) throws {
+
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> EmptyRocketMessage {
-        _ = decoder
-        // Nothing to deserialize.
-        return EmptyRocketMessage()
+    public static func unpack(decoder: any RocketPackDecoder) throws -> Self {
+
     }
 }
