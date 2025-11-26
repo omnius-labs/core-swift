@@ -33,7 +33,7 @@ public protocol RocketPackDecoder: AnyObject {
     func readArray() throws -> UInt64
     func readMap() throws -> UInt64
     func readNull() throws
-    func readStruct<T: RocketPackStruct>() throws -> T
+    func readStruct<T: RocketPackStruct>(ofType _: T.Type) throws -> T
     func skipField() throws
 }
 
@@ -410,7 +410,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readStruct<T>() throws -> T where T: RocketPackStruct {
+    public func readStruct<T>(ofType _: T.Type) throws -> T where T: RocketPackStruct {
         return try T.unpack(decoder: self)
     }
 

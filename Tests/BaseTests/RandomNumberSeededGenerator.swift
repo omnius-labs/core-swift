@@ -3,8 +3,8 @@ import Testing
 @testable import Base
 
 @Test func simpleTest() throws {
-    var rng1 = SeededRandomNumberGenerator()
-    var rng2 = SeededRandomNumberGenerator()
+    var rng1 = RandomNumberSeededGenerator()
+    var rng2 = RandomNumberSeededGenerator()
 
     for _ in 0..<32 {
         let v1: UInt8 = .random(in: UInt8.min...UInt8.max, using: &rng1)

@@ -2,7 +2,7 @@ import GameplayKit
 
 // ref. https://stackoverflow.com/questions/54821659/swift-4-2-seeding-a-random-number-generator
 
-public class SeededRandomNumberGenerator: RandomNumberGenerator {
+public class RandomNumberSeededGenerator: RandomNumberGenerator {
     let seed: UInt64
     private var generator: GKMersenneTwisterRandomSource
 

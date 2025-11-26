@@ -18,6 +18,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.77.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.23.0"),
         .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0"),
+        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "1.8.0"),
     ],
     targets: [
         .target(
@@ -34,7 +35,8 @@ let package = Package(
                 "RocketPack",
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
-                .product(name: "Semaphore", package: "Semaphore"),
+                "Semaphore",
+                "CryptoSwift",
             ]
         ),
         .target(

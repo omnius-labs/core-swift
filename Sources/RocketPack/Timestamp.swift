@@ -16,6 +16,16 @@ public struct Timestamp64 {
     }
 }
 
+extension Timestamp64: RocketPackStruct {
+    public static func pack(encoder: RocketPackEncoder, value: Timestamp64) throws {
+        try encoder.writeI64(value.seconds)
+    }
+
+    public static func unpack(decoder: RocketPackDecoder) throws -> Timestamp64 {
+        Timestamp64(seconds: try decoder.readI64())
+    }
+}
+
 public struct Timestamp96 {
     var seconds: Int64
     var nanos: UInt32

@@ -8,6 +8,6 @@ extension EmptyRocketMessage: RocketPackStruct {
     }
 
     public static func unpack(decoder: any RocketPackDecoder) throws -> Self {
-
+        return Self()
     }
 }
