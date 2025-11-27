@@ -45,3 +45,38 @@ public struct Timestamp96 {
         return Date(timeIntervalSince1970: interval)
     }
 }
+
+extension Timestamp96: RocketPackStruct {
+    public static func pack(encoder: any RocketPackEncoder, value: Timestamp96) throws {
+        try encoder.writeMap(2)
+
+        try encoder.writeU64(0)
+        try encoder.writeI64(value.seconds)
+
+        try encoder.writeU64(1)
+        try encoder.writeU32(value.nanos)
+    }
+
+    public static func unpack(decoder: any RocketPackDecoder) throws -> Timestamp96 {
+        var seconds: Int64?
+        var nanos: UInt32?
+
+        let count = try decoder.readMap()
+
+        for _ in 0..<count {
+            switch try decoder.readU64() {
+            case 0:
+                seconds = try decoder.readI64()
+            case 1:
+                nanos = try decoder.readU32()
+            default:
+                try decoder.skipField()
+            }
+        }
+
+        return Timestamp96(
+            seconds: seconds ?? 0,
+            nanos: nanos ?? 0
+        )
+    }
+}

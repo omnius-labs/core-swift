@@ -1,4 +1,4 @@
-public struct EmptyRocketMessage {
+public struct EmptyRocketMessage: Equatable, Sendable {
     public init() {}
 }
 
