@@ -17,7 +17,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Swift
         uses: tayloraswift/swift-install-action@master
         with:
