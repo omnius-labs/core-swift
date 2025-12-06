@@ -12,13 +12,17 @@ let package = Package(
     products: [
         .library(
             name: "OmniusCore",
-            targets: ["Base", "Omnikit", "RocketPack"])
+            targets: ["Base", "Omnikit", "RocketPack"]),
+        .executable(
+            name: "InteropClientTest",
+            targets: ["InteropClientTest"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.77.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.23.0"),
         .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "1.8.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
     ],
     targets: [
         .target(
@@ -57,6 +61,16 @@ let package = Package(
         .testTarget(
             name: "RocketPackTests",
             dependencies: ["Base", "RocketPack"]
+        ),
+        .executableTarget(
+            name: "InteropClientTest",
+            dependencies: [
+                "Base",
+                "Omnikit",
+                "RocketPack",
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
         ),
     ]
 )

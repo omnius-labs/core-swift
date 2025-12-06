@@ -30,7 +30,7 @@ func communicationStreamTest() async throws {
     let listenerTask = Task { () throws -> UInt32 in
         defer { listenerStream.close() }
 
-        let sender = FramedSender(listenerStream, allocator: allocator)
+        let sender = FramedSender(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
         let receiver = FramedReceiver(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
 
         let helloBytes = try await receiver.receive()
@@ -48,7 +48,7 @@ func communicationStreamTest() async throws {
         return hello.functionId
     }
 
-    let sender = FramedSender(callerStream, allocator: allocator)
+    let sender = FramedSender(callerStream, maxFrameLength: maxFrameLength, allocator: allocator)
     let receiver = FramedReceiver(callerStream, maxFrameLength: maxFrameLength, allocator: allocator)
     let stream = OmniRemotingStream(sender: sender, receiver: receiver)
 

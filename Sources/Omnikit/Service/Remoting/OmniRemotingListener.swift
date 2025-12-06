@@ -17,7 +17,7 @@ public actor OmniRemotingListener {
 
     init(tcpStream: TcpStream, maxFrameLength: Int, allocator: ByteBufferAllocator) {
         self.tcpStream = tcpStream
-        self.sender = FramedSender(tcpStream, allocator: allocator)
+        self.sender = FramedSender(tcpStream, maxFrameLength: maxFrameLength, allocator: allocator)
         self.receiver = FramedReceiver(tcpStream, maxFrameLength: maxFrameLength, allocator: allocator)
     }
 

@@ -30,7 +30,7 @@ public actor OmniSecureStream: AsyncSend, AsyncReceive, @unchecked Sendable {
         self.allocator = allocator
         self.maxPlaintextLength = maxFrameLength
         self.receiver = FramedReceiver(stream, maxFrameLength: maxFrameLength + 16, allocator: allocator)
-        self.sender = FramedSender(stream, allocator: allocator)
+        self.sender = FramedSender(stream, maxFrameLength: maxFrameLength + 16, allocator: allocator)
 
         let authenticator = Authenticator(
             type: type,

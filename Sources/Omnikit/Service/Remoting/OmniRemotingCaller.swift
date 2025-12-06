@@ -18,7 +18,7 @@ public actor OmniRemotingCaller {
     init(tcpStream: TcpStream, functionId: UInt32, maxFrameLength: Int, allocator: ByteBufferAllocator) {
         self.tcpStream = tcpStream
         self.functionId = functionId
-        self.sender = FramedSender(tcpStream, allocator: allocator)
+        self.sender = FramedSender(tcpStream, maxFrameLength: maxFrameLength, allocator: allocator)
         self.receiver = FramedReceiver(tcpStream, maxFrameLength: maxFrameLength, allocator: allocator)
     }
 
