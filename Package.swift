@@ -15,8 +15,8 @@ let package = Package(
             targets: ["Base", "Omnikit", "RocketPack"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.77.0"),
-        .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.23.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.92.0"),
+        .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.26.0"),
         .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "1.8.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
