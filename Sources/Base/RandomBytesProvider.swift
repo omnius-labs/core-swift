@@ -1,11 +1,11 @@
 import Foundation
 import Security
 
-public protocol RandomBytesProvider: Sendable {
+public protocol RandomBytesProvider {
     func getBytes(_ count: Int) -> [UInt8]
 }
 
-public struct RandomBytesProviderImpl: RandomBytesProvider {
+public struct RandomBytesProviderImpl: RandomBytesProvider, Sendable {
     public init() {}
 
     public func getBytes(_ count: Int) -> [UInt8] {

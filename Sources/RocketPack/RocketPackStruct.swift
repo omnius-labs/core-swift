@@ -1,29 +1,31 @@
 import Foundation
 import NIO
+import OmniusCoreBase
 
 public protocol RocketPackStruct {
-    static func pack(encoder: RocketPackEncoder, value: Self) throws
-    static func unpack(decoder: RocketPackDecoder) throws -> Self
+    static func pack<E: RocketPackEncoder>(encoder: inout E, value: Self) throws
+    static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> Self
 }
 
 extension RocketPackStruct {
-    public func pack(to encoder: RocketPackEncoder) throws {
-        try Self.pack(encoder: encoder, value: self)
+    public func pack<E: RocketPackEncoder>(to encoder: inout E) throws {
+        try Self.pack(encoder: &encoder, value: self)
     }
 
-    public static func `import`(_ bytes: [UInt8]) throws -> Self {
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
-        return try Self.unpack(decoder: decoder)
+    public static func `import`(_ data: Data) throws -> Self {
+        let buffer = ByteBufferConverter.fromData(from: data)
+        var decoder = RocketPackBytesDecoder(buffer: buffer)
+        return try Self.unpack(decoder: &decoder)
     }
 
-    public static func `import`(_ bytes: ByteBuffer) throws -> Self {
-        let decoder = RocketPackBytesDecoder(bytes: Array(bytes.readableBytesView))
-        return try Self.unpack(decoder: decoder)
+    public static func `import`(_ buffer: ByteBuffer) throws -> Self {
+        var decoder = RocketPackBytesDecoder(buffer: buffer)
+        return try Self.unpack(decoder: &decoder)
     }
 
-    public func export() throws -> [UInt8] {
-        let encoder = RocketPackBytesEncoder()
-        try Self.pack(encoder: encoder, value: self)
-        return encoder.bytes
+    public func export(allocator: ByteBufferAllocator = .init()) throws -> ByteBuffer {
+        var encoder = RocketPackBytesEncoder(allocator: allocator)
+        try Self.pack(encoder: &encoder, value: self)
+        return encoder.buffer
     }
 }

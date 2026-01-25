@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Timestamp64 {
+public struct Timestamp64: Sendable {
     var seconds: Int64
 
     public init(seconds: Int64) {
@@ -17,16 +17,16 @@ public struct Timestamp64 {
 }
 
 extension Timestamp64: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: Timestamp64) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: Timestamp64) throws {
         try encoder.writeI64(value.seconds)
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> Timestamp64 {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> Timestamp64 {
         Timestamp64(seconds: try decoder.readI64())
     }
 }
 
-public struct Timestamp96 {
+public struct Timestamp96: Sendable {
     var seconds: Int64
     var nanos: UInt32
 
@@ -47,7 +47,7 @@ public struct Timestamp96 {
 }
 
 extension Timestamp96: RocketPackStruct {
-    public static func pack(encoder: any RocketPackEncoder, value: Timestamp96) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: Timestamp96) throws {
         try encoder.writeMap(2)
 
         try encoder.writeU64(0)
@@ -57,7 +57,7 @@ extension Timestamp96: RocketPackStruct {
         try encoder.writeU32(value.nanos)
     }
 
-    public static func unpack(decoder: any RocketPackDecoder) throws -> Timestamp96 {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> Timestamp96 {
         var seconds: Int64?
         var nanos: UInt32?
 

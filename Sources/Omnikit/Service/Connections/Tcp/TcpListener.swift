@@ -2,22 +2,17 @@ import Dispatch
 import NIO
 import Semaphore
 
-public final class TcpListener: @unchecked Sendable {
-    private let eventLoopGroup: EventLoopGroup
+public actor TcpListener: Sendable {
     private let serverBootstrap: ServerBootstrap
     private let handler: TcpListenerChannelInboundHandler
-    private let dispatchQueue = DispatchQueue(label: "TcpListener")
 
     private var bindChannel: Channel?
-    private let acceptedTcpStreamQueue = AsyncQueue<TcpStream>()
+    private let acceptedTcpStreamQueue = TcpUtils.AsyncQueue<TcpStream>()
 
-    public init() {
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-
-        let handler = TcpListenerChannelInboundHandler(
-            acceptedTcpStreamQueue: self.acceptedTcpStreamQueue, dispatchQueue: self.dispatchQueue)
-        self.serverBootstrap = ServerBootstrap(group: self.eventLoopGroup)
-            .serverChannelOption(.backlog, value: 3)
+    public init(backlog: Int32, eventLoopGroup: EventLoopGroup) {
+        let handler = TcpListenerChannelInboundHandler(acceptedTcpStreamQueue: self.acceptedTcpStreamQueue)
+        self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
+            .serverChannelOption(.backlog, value: backlog)
             .serverChannelOption(.socketOption(.so_reuseaddr), value: 1)
             .childChannelOption(.socketOption(.so_reuseaddr), value: 1)
             .childChannelOption(.maxMessagesPerRead, value: 16)
@@ -45,16 +40,14 @@ public final class TcpListener: @unchecked Sendable {
     }
 }
 
-final class TcpListenerChannelInboundHandler: ChannelInboundHandler, @unchecked Sendable {
+final class TcpListenerChannelInboundHandler: ChannelInboundHandler, Sendable {
     typealias InboundIn = ByteBuffer
 
-    private let acceptedQueue: AsyncQueue<TcpStream>
-    private let dispatchQueue: DispatchQueue
-    private var tcpStreamManager = TcpStreamManager()
+    private let acceptedQueue: TcpUtils.AsyncQueue<TcpStream>
+    private let tcpStreamManager = TcpStreamManager()
 
-    init(acceptedTcpStreamQueue: AsyncQueue<TcpStream>, dispatchQueue: DispatchQueue) {
+    init(acceptedTcpStreamQueue: TcpUtils.AsyncQueue<TcpStream>) {
         self.acceptedQueue = acceptedTcpStreamQueue
-        self.dispatchQueue = dispatchQueue
     }
 
     func channelActive(context: ChannelHandlerContext) {
@@ -65,7 +58,7 @@ final class TcpListenerChannelInboundHandler: ChannelInboundHandler, @unchecked 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let buffer = self.unwrapInboundIn(data)
         let tcpStream = self.tcpStreamManager.get(context.channel)
-        tcpStream.enqueueReceive(.bytes(ByteBufferWrapper(buffer)))
+        tcpStream.enqueueReceive(.bytes(ByteBufferReader(buffer)))
     }
 
     func channelInactive(context: ChannelHandlerContext) {

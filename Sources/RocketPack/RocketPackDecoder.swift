@@ -1,8 +1,9 @@
 import Foundation
+import NIO
 
 // https://cborbook.com/part_1/practical_introduction_to_cbor.html
 
-public enum RocketPackDecoderError: Error, Equatable {
+public enum RocketPackDecoderError: Error, Equatable, Sendable {
     case unexpectedEof
     case mismatchFieldType(position: Int, fieldType: FieldType)
     case lengthOverflow(position: Int)
@@ -10,48 +11,44 @@ public enum RocketPackDecoderError: Error, Equatable {
     case other(String)
 }
 
-public protocol RocketPackDecoder: AnyObject {
+public protocol RocketPackDecoder {
     var remaining: Int { get }
     var position: Int { get }
 
     func currentType() throws -> FieldType
 
-    func readBool() throws -> Bool
-    func readU8() throws -> UInt8
-    func readU16() throws -> UInt16
-    func readU32() throws -> UInt32
-    func readU64() throws -> UInt64
-    func readI8() throws -> Int8
-    func readI16() throws -> Int16
-    func readI32() throws -> Int32
-    func readI64() throws -> Int64
-    func readF32() throws -> Float
-    func readF64() throws -> Double
-    func readBytes() throws -> [UInt8]
-    func readBytesVec() throws -> [UInt8]
-    func readString() throws -> String
-    func readArray() throws -> UInt64
-    func readMap() throws -> UInt64
-    func readNull() throws
-    func readStruct<T: RocketPackStruct>(ofType _: T.Type) throws -> T
-    func skipField() throws
+    mutating func readBool() throws -> Bool
+    mutating func readU8() throws -> UInt8
+    mutating func readU16() throws -> UInt16
+    mutating func readU32() throws -> UInt32
+    mutating func readU64() throws -> UInt64
+    mutating func readI8() throws -> Int8
+    mutating func readI16() throws -> Int16
+    mutating func readI32() throws -> Int32
+    mutating func readI64() throws -> Int64
+    mutating func readF32() throws -> Float
+    mutating func readF64() throws -> Double
+    mutating func readBytes() throws -> [UInt8]
+    mutating func readBytesVec() throws -> [UInt8]
+    mutating func readString() throws -> String
+    mutating func readArray() throws -> UInt64
+    mutating func readMap() throws -> UInt64
+    mutating func readNull() throws
+    mutating func readStruct<T: RocketPackStruct>(ofType _: T.Type) throws -> T
+    mutating func skipField() throws
 }
 
-public final class RocketPackBytesDecoder: RocketPackDecoder {
-    private let buffer: [UInt8]
+public struct RocketPackBytesDecoder: RocketPackDecoder, Sendable {
+    private let buffer: ByteBuffer
     private var cursor: Int
 
-    public init(bytes: [UInt8]) {
-        self.buffer = bytes
+    public init(buffer: ByteBuffer) {
+        self.buffer = buffer
         self.cursor = 0
     }
 
-    public convenience init(data: Data) {
-        self.init(bytes: [UInt8](data))
-    }
-
     public var remaining: Int {
-        buffer.count - cursor
+        buffer.readableBytes - cursor
     }
 
     public var position: Int {
@@ -63,7 +60,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return try typeOf(major: major, info: info)
     }
 
-    public func readBool() throws -> Bool {
+    public mutating func readBool() throws -> Bool {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -77,7 +74,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readU8() throws -> UInt8 {
+    public mutating func readU8() throws -> UInt8 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -90,7 +87,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readU16() throws -> UInt16 {
+    public mutating func readU16() throws -> UInt16 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -104,7 +101,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readU32() throws -> UInt32 {
+    public mutating func readU32() throws -> UInt32 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -119,7 +116,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readU64() throws -> UInt64 {
+    public mutating func readU64() throws -> UInt64 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -135,7 +132,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readI8() throws -> Int8 {
+    public mutating func readI8() throws -> Int8 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -161,7 +158,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
-    public func readI16() throws -> Int16 {
+    public mutating func readI16() throws -> Int16 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -200,7 +197,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
-    public func readI32() throws -> Int32 {
+    public mutating func readI32() throws -> Int32 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -250,7 +247,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
-    public func readI64() throws -> Int64 {
+    public mutating func readI64() throws -> Int64 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -310,7 +307,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         throw RocketPackDecoderError.mismatchFieldType(position: p, fieldType: fieldType)
     }
 
-    public func readF32() throws -> Float {
+    public mutating func readF32() throws -> Float {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -322,7 +319,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return Float(bitPattern: bits)
     }
 
-    public func readF64() throws -> Double {
+    public mutating func readF64() throws -> Double {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -334,7 +331,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return Double(bitPattern: bits)
     }
 
-    public func readBytes() throws -> [UInt8] {
+    public mutating func readBytes() throws -> [UInt8] {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -349,11 +346,11 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return try readRawBytes(count: count)
     }
 
-    public func readBytesVec() throws -> [UInt8] {
+    public mutating func readBytesVec() throws -> [UInt8] {
         return try readBytes()
     }
 
-    public func readString() throws -> String {
+    public mutating func readString() throws -> String {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -372,7 +369,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         throw RocketPackDecoderError.utf8(position: p, description: "invalid UTF-8 sequence")
     }
 
-    public func readArray() throws -> UInt64 {
+    public mutating func readArray() throws -> UInt64 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -386,7 +383,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return len
     }
 
-    public func readMap() throws -> UInt64 {
+    public mutating func readMap() throws -> UInt64 {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -400,7 +397,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         return len
     }
 
-    public func readNull() throws {
+    public mutating func readNull() throws {
         let p = cursor
         let (major, info) = decompose(try currentRawByte())
         let fieldType = try typeOf(major: major, info: info)
@@ -410,11 +407,11 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    public func readStruct<T>(ofType _: T.Type) throws -> T where T: RocketPackStruct {
-        return try T.unpack(decoder: self)
+    public mutating func readStruct<T>(ofType _: T.Type) throws -> T where T: RocketPackStruct {
+        return try T.unpack(decoder: &self)
     }
 
-    public func skipField() throws {
+    public mutating func skipField() throws {
         var remainingFields: UInt64 = 1
 
         while remainingFields > 0 {
@@ -495,7 +492,7 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         }
     }
 
-    func readRawLen(info: UInt8) throws -> UInt64? {
+    mutating func readRawLen(info: UInt8) throws -> UInt64? {
         switch info {
         case 0...23:
             return UInt64(info)
@@ -572,41 +569,41 @@ public final class RocketPackBytesDecoder: RocketPackDecoder {
         guard remaining >= 1 else {
             throw RocketPackDecoderError.unexpectedEof
         }
-        return buffer[cursor]
+        return buffer.readableBytesView[cursor]
     }
 
     private func peekRawByte() throws -> UInt8 {
         guard remaining >= 2 else {
             throw RocketPackDecoderError.unexpectedEof
         }
-        return buffer[cursor + 1]
+        return buffer.readableBytesView[cursor + 1]
     }
 
-    private func readRawFixedInteger<T>(_ type: T.Type) throws -> T where T: FixedWidthInteger & UnsignedInteger {
+    private mutating func readRawFixedInteger<T>(_ type: T.Type) throws -> T where T: FixedWidthInteger & UnsignedInteger {
         let count = MemoryLayout<T>.size
         guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
 
-        let rawValue: T = buffer.withUnsafeBytes { raw in
-            raw.baseAddress!.advanced(by: cursor).loadUnaligned(as: T.self)
+        let index = buffer.readerIndex + cursor
+        guard let rawValue: T = buffer.getInteger(at: index, endianness: .big, as: T.self) else {
+            throw RocketPackDecoderError.unexpectedEof
         }
-
         cursor += count
-        return T(bigEndian: rawValue)
+        return rawValue
     }
 
-    private func readRawBytes(count: Int) throws -> [UInt8] {
+    private mutating func readRawBytes(count: Int) throws -> [UInt8] {
         guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }
         let end = cursor + count
-        let slice = Array(buffer[cursor..<end])
+        let slice = Array(buffer.readableBytesView[cursor..<end])
         cursor = end
         return slice
     }
 
-    private func skipRawBytes(count: Int) throws {
+    private mutating func skipRawBytes(count: Int) throws {
         guard remaining >= count else {
             throw RocketPackDecoderError.unexpectedEof
         }

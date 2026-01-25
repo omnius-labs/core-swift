@@ -1,26 +1,27 @@
 import Foundation
 import NIO
+import OmniusCoreBase
 import Semaphore
 import Testing
 
-@testable import Omnikit
+@testable import OmniusCoreOmnikit
 
-@Test
+@Test(.timeLimit(.minutes(1)))
 func omniSecureStreamCommunicationTest() async throws {
     let allocator = ByteBufferAllocator()
-    let (clientStream, serverStream) = DuplexStream.createPair(allocator: allocator)
+    var rng = SeededRandomNumberGenerator(seed: 0)
 
-    let maxSecureStreamFrameLength = 1024
+    let (clientStream, serverStream) = DuplexStream.createPair()
+
+    let maxSecureStreamFrameLength = 16 * 1024
     async let client = OmniSecureStream(
         type: .connected,
         stream: clientStream,
-        allocator: allocator,
         maxFrameLength: maxSecureStreamFrameLength,
     )
     async let server = OmniSecureStream(
         type: .accepted,
         stream: serverStream,
-        allocator: allocator,
         maxFrameLength: maxSecureStreamFrameLength,
     )
 
@@ -32,14 +33,14 @@ func omniSecureStreamCommunicationTest() async throws {
 
     let cases = [1, 2, 3, 10, 100, 1_000, 1_024 * 1_024]
     for size in cases {
-        let bytes = (0..<size).map { _ in UInt8.random(in: UInt8.min...UInt8.max) }
-        var message = allocator.buffer(capacity: size)
-        message.writeBytes(bytes)
+        let sendingBytes = ByteBuffer.init(bytes: rng.getBytes(size: size))
 
-        try await sender.send(message)
-        let received = try await receiver.receive()
+        async let sendTask: Void = sender.send(sendingBytes)
+        async let receivedTask: ByteBuffer = receiver.receive()
 
-        #expect(received.readableBytes == size)
-        #expect(received.readableBytesView.elementsEqual(bytes))
+        try await sendTask
+        let receivedBytes = try await receivedTask
+
+        #expect(receivedBytes == sendingBytes)
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 import NIO
-import RocketPack
+import OmniusCoreRocketPack
 
 public actor OmniRemotingCaller {
     private let tcpStream: TcpStream
@@ -24,7 +24,7 @@ public actor OmniRemotingCaller {
 
     private func handshake() async throws {
         let helloMessage = OmniRemotingHelloMessage(version: .v1, functionId: self.functionId)
-        let bytes = ByteBuffer(bytes: try helloMessage.export())
+        let bytes = try helloMessage.export()
         try await self.sender.send(bytes)
     }
 

@@ -37,7 +37,7 @@ public enum FieldType: Equatable, CustomStringConvertible, Sendable {
         case .string: return "string"
         case .array: return "array"
         case .map: return "map"
-        case let .unknown(major, info):
+        case .unknown(let major, let info):
             return "unknown(major=\(major), info=\(info))"
         }
     }

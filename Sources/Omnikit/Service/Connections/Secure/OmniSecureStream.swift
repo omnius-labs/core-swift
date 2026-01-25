@@ -1,36 +1,38 @@
-import Base
 import Foundation
 import NIO
+import OmniusCoreBase
 
-public enum OmniSecureStreamType {
+public enum OmniSecureStreamType: Sendable {
     case connected
     case accepted
 }
 
-public actor OmniSecureStream: AsyncSend, AsyncReceive, @unchecked Sendable {
+public actor OmniSecureStream: AsyncReadable, AsyncWritable, Sendable {
+    private let maxPlaintextLength: Int
     private let receiver: FramedReceiver
     private let sender: FramedSender
-    private let encoder: Aes256GcmEncoder
-    private let decoder: Aes256GcmDecoder
-    private let maxPlaintextLength: Int
     private let allocator: ByteBufferAllocator
+
+    private var encoder: Aes256GcmEncoder
+    private var decoder: Aes256GcmDecoder
     private let signValue: String?
 
     private var pendingPlaintext: ByteBuffer?
+    private var pendingPlaintextOffset: Int = 0
 
     public init(
         type: OmniSecureStreamType,
-        stream: any AsyncSend & AsyncReceive,
+        stream: any AsyncReadable & AsyncWritable & Sendable,
         signer: OmniSigner? = nil,
-        randomBytesProvider: any RandomBytesProvider = RandomBytesProviderImpl(),
-        clock: any Clock = SystemClock(),
-        allocator: ByteBufferAllocator = ByteBufferAllocator(),
-        maxFrameLength: Int = 1024 * 64
+        maxFrameLength: Int = 1024 * 64,
+        randomBytesProvider: any RandomBytesProvider & Sendable = RandomBytesProviderImpl(),
+        clock: any Clock & Sendable = SystemClock(),
+        allocator: ByteBufferAllocator = .init()
     ) async throws {
-        self.allocator = allocator
         self.maxPlaintextLength = maxFrameLength
         self.receiver = FramedReceiver(stream, maxFrameLength: maxFrameLength + 16, allocator: allocator)
         self.sender = FramedSender(stream, maxFrameLength: maxFrameLength + 16, allocator: allocator)
+        self.allocator = allocator
 
         let authenticator = Authenticator(
             type: type,
@@ -39,7 +41,6 @@ public actor OmniSecureStream: AsyncSend, AsyncReceive, @unchecked Sendable {
             signer: signer,
             randomBytesProvider: randomBytesProvider,
             clock: clock,
-            allocator: allocator
         )
 
         let auth = try await authenticator.authenticate()
@@ -48,20 +49,15 @@ public actor OmniSecureStream: AsyncSend, AsyncReceive, @unchecked Sendable {
         self.signValue = auth.sign
     }
 
-    public func send(_ buffer: ByteBuffer) async throws {
-        var plain = buffer
-        while plain.readableBytes > 0 {
-            let size = min(self.maxPlaintextLength, plain.readableBytes)
-            let chunk = plain.readSlice(length: size)!
-            let encrypted = try self.encoder.encode(chunk)
-            try await self.sender.send(encrypted)
-        }
+    public var sign: String? {
+        self.signValue
     }
 
-    public func receive(length: Int) async throws -> ByteBuffer {
-        guard length > 0 else { return self.allocator.buffer(capacity: 0) }
+    public func read(length: Int) async throws -> ByteBuffer {
+        if length <= 0 { return self.allocator.buffer(capacity: 0) }
 
         var result = self.allocator.buffer(capacity: length)
+
         while result.readableBytes < length {
             if var pending = self.pendingPlaintext, pending.readableBytes > 0 {
                 let take = min(length - result.readableBytes, pending.readableBytes)
@@ -84,7 +80,21 @@ public actor OmniSecureStream: AsyncSend, AsyncReceive, @unchecked Sendable {
         return result
     }
 
-    public var sign: String? {
-        self.signValue
+    public func write(buffer: ByteBuffer) async throws {
+        var plain = buffer
+        while plain.readableBytes > 0 {
+            let size = min(self.maxPlaintextLength, plain.readableBytes)
+            let chunk = plain.readSlice(length: size)!
+            let encrypted = try self.encoder.encode(chunk)
+            try await self.sender.send(encrypted)
+        }
     }
+}
+
+public enum OmniSecureStreamError: Error, Sendable {
+    case unsupportedAlgorithm(String)
+    case invalidFormat(String)
+    case handshakeFailed(String)
+    case encryptionFailed
+    case decryptionFailed
 }

@@ -1,19 +1,19 @@
 import NIO
-import RocketPack
+import OmniusCoreRocketPack
 import Testing
 
-@testable import Omnikit
+@testable import OmniusCoreOmnikit
 
 private struct CommunicationTestMessage: Equatable, Sendable {
     let value: Int32
 }
 
 extension CommunicationTestMessage: RocketPackStruct {
-    static func pack(encoder: any RocketPack.RocketPackEncoder, value: CommunicationTestMessage) throws {
+    static func pack<E: OmniusCoreRocketPack.RocketPackEncoder>(encoder: inout E, value: CommunicationTestMessage) throws {
         try encoder.writeI32(value.value)
     }
 
-    static func unpack(decoder: any RocketPack.RocketPackDecoder) throws -> CommunicationTestMessage {
+    static func unpack<D: OmniusCoreRocketPack.RocketPackDecoder>(decoder: inout D) throws -> CommunicationTestMessage {
         let value = try decoder.readI32()
         return Self(value: value)
     }
@@ -24,11 +24,11 @@ func communicationStreamTest() async throws {
     let allocator = ByteBufferAllocator()
     let maxFrameLength = 1_024 * 1_024
     let functionId: UInt32 = 1
-    let (callerStream, listenerStream) = DuplexStream.createPair(allocator: allocator)
-    defer { callerStream.close() }
+    let (callerStream, listenerStream) = DuplexStream.createPair()
+    defer { Task { try? await callerStream.close() } }
 
     let listenerTask = Task { () throws -> UInt32 in
-        defer { listenerStream.close() }
+        defer { Task { try? await listenerStream.close() } }
 
         let sender = FramedSender(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
         let receiver = FramedReceiver(listenerStream, maxFrameLength: maxFrameLength, allocator: allocator)
@@ -53,7 +53,7 @@ func communicationStreamTest() async throws {
     let stream = OmniRemotingStream(sender: sender, receiver: receiver)
 
     let hello = OmniRemotingHelloMessage(version: .v1, functionId: functionId)
-    let helloBuffer = ByteBuffer(bytes: try hello.export())
+    let helloBuffer = try hello.export()
     try await sender.send(helloBuffer)
 
     try await stream.send(CommunicationTestMessage(value: 1))

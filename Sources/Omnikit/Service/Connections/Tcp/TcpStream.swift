@@ -1,28 +1,25 @@
 import Dispatch
+import Foundation
 import NIO
+import NIOFoundationCompat
+import OmniusCoreBase
 import Semaphore
 
-public actor TcpStream: AsyncSend, AsyncReceive, @unchecked Sendable {
-    private let channel: Channel
-    private let receivedDataQueue: AsyncQueue<TcpStreamReceivedData>
+public actor TcpStream: AsyncReadable, AsyncWritable, Sendable {
+    private let channel: NIO.Channel
+    private let receivedDataQueue: TcpUtils.AsyncQueue<TcpStreamReceivedData>
 
-    init(channel: Channel) {
+    init(channel: NIO.Channel) {
         self.channel = channel
-        self.receivedDataQueue = AsyncQueue()
+        self.receivedDataQueue = TcpUtils.AsyncQueue()
     }
 
     public func close() async throws {
         try await self.channel.close().get()
     }
 
-    public func send(_ buffer: ByteBuffer) async throws {
-        try await self.channel.writeAndFlush(buffer).get()
-    }
-
-    public func receive(length: Int) async throws -> ByteBuffer {
-        if length <= 0 {
-            return ByteBuffer()
-        }
+    public func read(length: Int) async throws -> ByteBuffer {
+        if length <= 0 { return ByteBuffer.init() }
 
         while true {
             if self.receivedDataQueue.count() == 0 {
@@ -30,19 +27,21 @@ public actor TcpStream: AsyncSend, AsyncReceive, @unchecked Sendable {
             }
 
             switch try await self.receivedDataQueue.peek() {
-            case .bytes(let bufferWrapper):
-                // discard
-                if bufferWrapper.buffer.readableBytes == 0 {
-                    let _ = try await self.receivedDataQueue.dequeue()
-                    continue
-                }
-
-                let readLength = min(length, bufferWrapper.buffer.readableBytes)
-                return bufferWrapper.buffer.readSlice(length: readLength)!
+            case .bytes(var bufferReader):
+                _ = try await self.receivedDataQueue.dequeue()
+                return bufferReader.buffer.readSlice(length: length) ?? ByteBuffer.init()
             case .inactive:
-                return ByteBuffer()
+                return ByteBuffer.init()
             }
         }
+    }
+
+    public func write(buffer: ByteBuffer) async throws {
+        try await self.channel.write(buffer).get()
+    }
+
+    public func flush() async throws {
+        self.channel.flush()
     }
 
     nonisolated func enqueueReceive(_ data: TcpStreamReceivedData) {
@@ -51,14 +50,14 @@ public actor TcpStream: AsyncSend, AsyncReceive, @unchecked Sendable {
 }
 
 enum TcpStreamReceivedData: Sendable {
-    case bytes(ByteBufferWrapper)
+    case bytes(ByteBufferReader)
     case inactive
 }
 
-final class ByteBufferWrapper: @unchecked Sendable {
-    var buffer: ByteBuffer
-
+struct ByteBufferReader: Sendable {
     init(_ buffer: ByteBuffer) {
         self.buffer = buffer
     }
+
+    public var buffer: ByteBuffer
 }

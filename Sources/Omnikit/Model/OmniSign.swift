@@ -1,21 +1,26 @@
 import CryptoKit
 import CryptoSwift
 import Foundation
-import RocketPack
+import OmniusCoreRocketPack
 
-public enum OmniSignType: String {
+public enum OmniSignType: String, Sendable {
     case none = "none"
     case ed25519Sha3_256_Base64Url = "ed25519_sha3_256_base64url"
 }
 
-public struct OmniSigner {
+enum OmniSignerError: Error, Sendable {
+    case unsupportedAlgorithm(String)
+    case invalidFormat(String)
+}
+
+public struct OmniSigner: Sendable {
     public let type: OmniSignType
     public let name: String
     public let key: Data
 
     public static func create(type: OmniSignType, name: String) throws -> OmniSigner {
         guard type == .ed25519Sha3_256_Base64Url else {
-            throw SecureError.unsupportedAlgorithm("sign type")
+            throw OmniSignerError.unsupportedAlgorithm("sign type")
         }
 
         let privateKey = Curve25519.Signing.PrivateKey()
@@ -24,7 +29,7 @@ public struct OmniSigner {
 
     public func sign(_ message: [UInt8]) throws -> OmniCert {
         guard type == .ed25519Sha3_256_Base64Url else {
-            throw SecureError.unsupportedAlgorithm("sign type")
+            throw OmniSignerError.unsupportedAlgorithm("sign type")
         }
 
         let privateKey = try Curve25519.Signing.PrivateKey(rawRepresentation: self.key)
@@ -49,22 +54,20 @@ public struct OmniSigner {
     }
 }
 
-public struct OmniCert {
+public struct OmniCert: Sendable {
     public let type: OmniSignType
     public let name: String
     public let publicKey: Data
     public let value: Data
 
-    public func verify(_ message: [UInt8]) throws {
+    public func verify(_ message: [UInt8]) throws -> Bool {
         guard type == .ed25519Sha3_256_Base64Url else {
-            throw SecureError.unsupportedAlgorithm("sign type")
+            throw OmniSignerError.unsupportedAlgorithm("sign type")
         }
 
         let rawPublicKey = try OmniCert.decodeEd25519PublicKeyDer(self.publicKey)
         let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: rawPublicKey)
-        if !publicKey.isValidSignature(self.value, for: Data(message)) {
-            throw SecureError.handshakeFailed("invalid signature")
-        }
+        return publicKey.isValidSignature(self.value, for: Data(message))
     }
 
     public func descriptionString() throws -> String {
@@ -87,17 +90,17 @@ public struct OmniCert {
     static func decodeEd25519PublicKeyDer(_ der: Data) throws -> Data {
         let expectedPrefix: [UInt8] = [0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00]
         guard der.count == expectedPrefix.count + 32 else {
-            throw SecureError.invalidFormat("public key der length")
+            throw OmniSignerError.invalidFormat("public key der length")
         }
         guard der.prefix(expectedPrefix.count).elementsEqual(expectedPrefix) else {
-            throw SecureError.invalidFormat("public key der prefix")
+            throw OmniSignerError.invalidFormat("public key der prefix")
         }
         return der.suffix(32)
     }
 }
 
 extension OmniSigner: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: OmniSigner) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: OmniSigner) throws {
         try encoder.writeMap(3)
 
         try encoder.writeU64(0)
@@ -110,7 +113,7 @@ extension OmniSigner: RocketPackStruct {
         try encoder.writeBytes(Array(value.key))
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> OmniSigner {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> OmniSigner {
         var type: OmniSignType?
         var name: String?
         var key: Data?
@@ -140,7 +143,7 @@ extension OmniSigner: RocketPackStruct {
 }
 
 extension OmniCert: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: OmniCert) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: OmniCert) throws {
         try encoder.writeMap(4)
 
         try encoder.writeU64(0)
@@ -156,7 +159,7 @@ extension OmniCert: RocketPackStruct {
         try encoder.writeBytes(Array(value.value))
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> OmniCert {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> OmniCert {
         var type: OmniSignType?
         var name: String?
         var publicKey: Data?

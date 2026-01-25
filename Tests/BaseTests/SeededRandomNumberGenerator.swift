@@ -1,10 +1,10 @@
 import Testing
 
-@testable import Base
+@testable import OmniusCoreBase
 
 @Test func simpleTest() throws {
-    var rng1 = RandomNumberSeededGenerator()
-    var rng2 = RandomNumberSeededGenerator()
+    var rng1 = SeededRandomNumberGenerator(seed: 0)
+    var rng2 = SeededRandomNumberGenerator(seed: 0)
 
     for _ in 0..<32 {
         let v1: UInt8 = .random(in: UInt8.min...UInt8.max, using: &rng1)

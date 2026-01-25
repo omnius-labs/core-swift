@@ -1,10 +1,10 @@
 import Foundation
 
-public protocol Clock: Sendable {
+public protocol Clock {
     func now() -> Date
 }
 
-public struct SystemClock: Clock {
+public struct SystemClock: Clock, Sendable {
     public init() {}
     public func now() -> Date { Date() }
 }

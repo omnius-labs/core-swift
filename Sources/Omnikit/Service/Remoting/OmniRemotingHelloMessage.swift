@@ -1,6 +1,6 @@
 import Foundation
 import NIO
-import RocketPack
+import OmniusCoreRocketPack
 
 enum OmniRemotingVersion: String {
     case unknown = "unknown"
@@ -18,7 +18,7 @@ struct OmniRemotingHelloMessage: Equatable {
 }
 
 extension OmniRemotingHelloMessage: RocketPackStruct {
-    static func pack(encoder: any RocketPack.RocketPackEncoder, value: OmniRemotingHelloMessage) throws {
+    static func pack<E: OmniusCoreRocketPack.RocketPackEncoder>(encoder: inout E, value: OmniRemotingHelloMessage) throws {
         try encoder.writeMap(2)
 
         try encoder.writeU64(0)
@@ -28,7 +28,7 @@ extension OmniRemotingHelloMessage: RocketPackStruct {
         try encoder.writeU32(value.functionId)
     }
 
-    static func unpack(decoder: any RocketPack.RocketPackDecoder) throws -> OmniRemotingHelloMessage {
+    static func unpack<D: OmniusCoreRocketPack.RocketPackDecoder>(decoder: inout D) throws -> OmniRemotingHelloMessage {
         var version: OmniRemotingVersion?
         var functionId: UInt32?
 

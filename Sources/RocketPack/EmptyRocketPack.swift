@@ -3,11 +3,11 @@ public struct EmptyRocketMessage: Equatable, Sendable {
 }
 
 extension EmptyRocketMessage: RocketPackStruct {
-    public static func pack(encoder: any RocketPackEncoder, value: Self) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: Self) throws {
 
     }
 
-    public static func unpack(decoder: any RocketPackDecoder) throws -> Self {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> Self {
         return Self()
     }
 }

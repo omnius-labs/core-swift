@@ -2,8 +2,8 @@ import Dispatch
 import NIO
 
 final class TcpStreamManager: @unchecked Sendable {
-    private let dispatchQueue = DispatchQueue(label: "TcpStreamManager")
-    private var tcpStreamMap = Map<ObjectIdentifier, TcpStream>()
+    private let dispatchQueue = DispatchQueue(label: "OmniusCoreOmnikit.TcpStreamManager")
+    private var tcpStreamMap = TcpUtils.Map<ObjectIdentifier, TcpStream>()
 
     func get(_ channel: Channel) -> TcpStream {
         let id = ObjectIdentifier(channel)
@@ -24,7 +24,7 @@ final class TcpStreamManager: @unchecked Sendable {
     }
 
     private func removeClient(for id: ObjectIdentifier) {
-        self.dispatchQueue.async {
+        self.dispatchQueue.sync {
             self.tcpStreamMap.remove(key: id)
         }
     }

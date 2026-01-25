@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
-import RocketPack
+import OmniusCoreRocketPack
 
-public enum OmniAgreementAlgorithmType: String {
+public enum OmniAgreementAlgorithmType: String, Sendable {
     case none = "none"
     case x25519 = "x25519"
 
@@ -16,7 +16,11 @@ public enum OmniAgreementAlgorithmType: String {
     }
 }
 
-public struct OmniAgreement {
+enum OmniAgreementError: Error, Sendable {
+    case unsupportedAlgorithm(String)
+}
+
+public struct OmniAgreement: Sendable {
     public let algorithmType: OmniAgreementAlgorithmType
     public let secretKey: Data
     public let publicKey: Data
@@ -24,7 +28,7 @@ public struct OmniAgreement {
 
     public static func create(_ algorithmType: OmniAgreementAlgorithmType, createdAt: Date) throws -> OmniAgreement {
         guard algorithmType == .x25519 else {
-            throw SecureError.unsupportedAlgorithm("key exchange algorithm")
+            throw OmniAgreementError.unsupportedAlgorithm("key exchange algorithm")
         }
 
         let privateKey = Curve25519.KeyAgreement.PrivateKey()
@@ -48,7 +52,7 @@ public struct OmniAgreement {
 
     public static func genSecret(_ privateKey: OmniAgreementPrivateKey, _ publicKey: OmniAgreementPublicKey) throws -> [UInt8] {
         guard privateKey.algorithmType == .x25519, publicKey.algorithmType == .x25519 else {
-            throw SecureError.unsupportedAlgorithm("key exchange algorithm")
+            throw OmniAgreementError.unsupportedAlgorithm("key exchange algorithm")
         }
 
         let priv = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey.secretKey)
@@ -58,20 +62,20 @@ public struct OmniAgreement {
     }
 }
 
-public struct OmniAgreementPublicKey {
+public struct OmniAgreementPublicKey: Sendable {
     public let algorithmType: OmniAgreementAlgorithmType
     public let publicKey: Data
     public let createdTime: Date
 }
 
-public struct OmniAgreementPrivateKey {
+public struct OmniAgreementPrivateKey: Sendable {
     public let algorithmType: OmniAgreementAlgorithmType
     public let secretKey: Data
     public let createdTime: Date
 }
 
 extension OmniAgreement: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: OmniAgreement) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: OmniAgreement) throws {
         try encoder.writeMap(4)
 
         try encoder.writeU64(0)
@@ -87,7 +91,7 @@ extension OmniAgreement: RocketPackStruct {
         try encoder.writeStruct(Timestamp64(date: value.createdTime))
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> OmniAgreement {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> OmniAgreement {
         var algorithmType: OmniAgreementAlgorithmType?
         var secretKey: Data?
         var publicKey: Data?
@@ -124,7 +128,7 @@ extension OmniAgreement: RocketPackStruct {
 }
 
 extension OmniAgreementPublicKey: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: OmniAgreementPublicKey) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: OmniAgreementPublicKey) throws {
         try encoder.writeMap(3)
 
         try encoder.writeU64(0)
@@ -137,7 +141,7 @@ extension OmniAgreementPublicKey: RocketPackStruct {
         try encoder.writeStruct(Timestamp64(date: value.createdTime))
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> OmniAgreementPublicKey {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> OmniAgreementPublicKey {
         var algorithmType: OmniAgreementAlgorithmType?
         var publicKey: Data?
         var createdTime: Date?
@@ -170,7 +174,7 @@ extension OmniAgreementPublicKey: RocketPackStruct {
 }
 
 extension OmniAgreementPrivateKey: RocketPackStruct {
-    public static func pack(encoder: RocketPackEncoder, value: OmniAgreementPrivateKey) throws {
+    public static func pack<E: RocketPackEncoder>(encoder: inout E, value: OmniAgreementPrivateKey) throws {
         try encoder.writeMap(3)
 
         try encoder.writeU64(0)
@@ -183,7 +187,7 @@ extension OmniAgreementPrivateKey: RocketPackStruct {
         try encoder.writeStruct(Timestamp64(date: value.createdTime))
     }
 
-    public static func unpack(decoder: RocketPackDecoder) throws -> OmniAgreementPrivateKey {
+    public static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> OmniAgreementPrivateKey {
         var algorithmType: OmniAgreementAlgorithmType?
         var secretKey: Data?
         var createdTime: Date?

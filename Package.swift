@@ -12,7 +12,7 @@ let package = Package(
     products: [
         .library(
             name: "OmniusCore",
-            targets: ["Base", "Omnikit", "RocketPack"])
+            targets: ["OmniusCoreBase", "OmniusCoreOmnikit", "OmniusCoreRocketPack"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.92.0"),
@@ -23,41 +23,47 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Base",
+            name: "OmniusCoreBase",
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
-            ]
+            ],
+            path: "Sources/Base",
         ),
         .target(
-            name: "Omnikit",
+            name: "OmniusCoreOmnikit",
             dependencies: [
-                "Base",
-                "RocketPack",
+                "OmniusCoreBase",
+                "OmniusCoreRocketPack",
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
                 "Semaphore",
                 "CryptoSwift",
-            ]
+            ],
+            path: "Sources/Omnikit",
         ),
         .target(
-            name: "RocketPack",
+            name: "OmniusCoreRocketPack",
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
-            ]
+            ],
+            path: "Sources/RocketPack",
         ),
         .testTarget(
-            name: "BaseTests",
-            dependencies: ["Base"]
+            name: "OmniusCoreBaseTests",
+            dependencies: ["OmniusCoreBase"],
+            path: "Tests/BaseTests",
         ),
         .testTarget(
-            name: "OmnikitTests",
-            dependencies: ["Base", "Omnikit", "RocketPack"]
+            name: "OmniusCoreOmnikitTests",
+            dependencies: ["OmniusCoreBase", "OmniusCoreOmnikit", "OmniusCoreRocketPack"],
+            path: "Tests/OmnikitTests",
         ),
         .testTarget(
-            name: "RocketPackTests",
-            dependencies: ["Base", "RocketPack"]
+            name: "OmniusCoreRocketPackTests",
+            dependencies: ["OmniusCoreBase", "OmniusCoreRocketPack"],
+            path: "Tests/RocketPackTests",
         ),
     ]
 )

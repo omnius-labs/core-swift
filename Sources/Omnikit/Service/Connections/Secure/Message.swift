@@ -1,36 +1,36 @@
 import Foundation
-import RocketPack
+import OmniusCoreRocketPack
 
-enum AuthType: UInt32 {
+enum AuthType: UInt32, Sendable {
     case none = 0
     case sign = 1
 }
 
-struct KeyExchangeAlgorithmType: OptionSet {
+struct KeyExchangeAlgorithmType: OptionSet, Sendable {
     let rawValue: UInt32
     static let none = KeyExchangeAlgorithmType([])
     static let x25519 = KeyExchangeAlgorithmType(rawValue: 1 << 0)
 }
 
-struct KeyDerivationAlgorithmType: OptionSet {
+struct KeyDerivationAlgorithmType: OptionSet, Sendable {
     let rawValue: UInt32
     static let none = KeyDerivationAlgorithmType([])
     static let hkdf = KeyDerivationAlgorithmType(rawValue: 1 << 1)
 }
 
-struct CipherAlgorithmType: OptionSet {
+struct CipherAlgorithmType: OptionSet, Sendable {
     let rawValue: UInt32
     static let none = CipherAlgorithmType([])
     static let aes256Gcm = CipherAlgorithmType(rawValue: 1 << 0)
 }
 
-struct HashAlgorithmType: OptionSet {
+struct HashAlgorithmType: OptionSet, Sendable {
     let rawValue: UInt32
     static let none = HashAlgorithmType([])
     static let sha3_256 = HashAlgorithmType(rawValue: 1 << 0)
 }
 
-struct ProfileMessage: Equatable {
+struct ProfileMessage: Equatable, Sendable {
     let sessionId: [UInt8]
     let authType: AuthType
     let keyExchangeAlgorithmType: KeyExchangeAlgorithmType
@@ -40,7 +40,7 @@ struct ProfileMessage: Equatable {
 }
 
 extension ProfileMessage: RocketPackStruct {
-    static func pack(encoder: RocketPackEncoder, value: ProfileMessage) throws {
+    static func pack<E: RocketPackEncoder>(encoder: inout E, value: ProfileMessage) throws {
         try encoder.writeMap(6)
 
         try encoder.writeU64(0)
@@ -62,7 +62,7 @@ extension ProfileMessage: RocketPackStruct {
         try encoder.writeU32(value.hashAlgorithmType.rawValue)
     }
 
-    static func unpack(decoder: RocketPackDecoder) throws -> ProfileMessage {
+    static func unpack<D: RocketPackDecoder>(decoder: inout D) throws -> ProfileMessage {
         var sessionId: [UInt8]?
         var authType: AuthType?
         var keyExchangeAlgorithmType: KeyExchangeAlgorithmType?

@@ -1,9 +1,9 @@
-import Base
 import Foundation
 import NIO
+import OmniusCoreBase
 import Testing
 
-@testable import RocketPack
+@testable import OmniusCoreRocketPack
 
 private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     (major << 5) | (info & 0b0001_1111)
@@ -16,11 +16,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeBool(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readBool()
         #expect(decoded == value)
     }
@@ -35,11 +35,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeU8(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readU8()
         #expect(decoded == value)
     }
@@ -55,11 +55,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeU16(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readU16()
         #expect(decoded == value)
     }
@@ -76,11 +76,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeU32(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readU32()
         #expect(decoded == value)
     }
@@ -98,11 +98,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeU64(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readU64()
         #expect(decoded == value)
     }
@@ -121,11 +121,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeI8(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readI8()
         #expect(decoded == value)
     }
@@ -148,11 +148,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeI16(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readI16()
         #expect(decoded == value)
     }
@@ -177,11 +177,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeI32(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readI32()
         #expect(decoded == value)
     }
@@ -209,11 +209,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeI64(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readI64()
         #expect(decoded == value)
     }
@@ -225,11 +225,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeF32(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readF32()
         #expect(decoded == value)
     }
@@ -241,11 +241,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeF64(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readF64()
         #expect(decoded == value)
     }
@@ -260,11 +260,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeBytes(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readBytes()
         #expect(decoded == value)
     }
@@ -277,11 +277,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeString(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readString()
         #expect(decoded == value)
     }
@@ -293,11 +293,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeArray(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readArray()
         #expect(decoded == UInt64(value))
     }
@@ -309,11 +309,11 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeMap(value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let decoded = try decoder.readMap()
         #expect(decoded == UInt64(value))
     }
@@ -331,11 +331,12 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, value, info) in cases {
-        let encoder = RocketPackBytesEncoder()
+        var encoder = RocketPackBytesEncoder()
         try encoder.writeRawLen(major: 0, length: value)
-        #expect(encoder.bytes == bytes)
+        #expect(bytes.elementsEqual(encoder.buffer.readableBytesView))
 
-        let decoder = RocketPackBytesDecoder(bytes: Array(bytes.dropFirst()))
+        // readRawLen assumes the initial header (major/info) was already consumed.
+        var decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: Array(bytes.dropFirst())))
         let decoded = try decoder.readRawLen(info: info)
         #expect(decoded == value)
     }
@@ -369,7 +370,7 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
     ]
 
     for (bytes, expectedType) in cases {
-        let decoder = RocketPackBytesDecoder(bytes: bytes)
+        let decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
         let actual = try decoder.currentType()
         #expect(actual == expectedType)
     }
@@ -384,7 +385,7 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
         (2, "test_value_2"),
     ]
 
-    let encoder = RocketPackBytesEncoder()
+    var encoder = RocketPackBytesEncoder()
     try encoder.writeBool(true)
     try encoder.writeU8(1)
     try encoder.writeU16(2)
@@ -408,7 +409,7 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
         try encoder.writeString(entry.1)
     }
 
-    let decoder = RocketPackBytesDecoder(bytes: encoder.bytes)
+    var decoder = RocketPackBytesDecoder(buffer: encoder.buffer)
     for _ in 0...14 {
         try decoder.skipField()
     }
@@ -418,7 +419,7 @@ private func compose(_ major: UInt8, _ info: UInt8) -> UInt8 {
 
 @Test func truncatedNegativeNumberReportsEof() throws {
     let bytes = [compose(1, 24)]
-    let decoder = RocketPackBytesDecoder(bytes: bytes)
+    let decoder = RocketPackBytesDecoder(buffer: ByteBuffer.init(bytes: bytes))
 
     #expect(throws: RocketPackDecoderError.unexpectedEof) {
         _ = try decoder.currentType()

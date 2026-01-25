@@ -1,6 +1,6 @@
 import Foundation
 import NIO
-import RocketPack
+import OmniusCoreRocketPack
 
 public actor OmniRemotingStream {
     private let sender: FramedSender
@@ -15,7 +15,7 @@ public actor OmniRemotingStream {
     where
         T: RocketPackStruct
     {
-        let sendingBytes = ByteBuffer(bytes: try message.export())
+        let sendingBytes = try message.export()
         try await sender.send(sendingBytes)
     }
 
@@ -24,7 +24,6 @@ public actor OmniRemotingStream {
         T: RocketPackStruct
     {
         let receivedBytes = try await self.receiver.receive()
-        let bytes = Array(receivedBytes.readableBytesView)
-        return try T.import(bytes)
+        return try T.import(receivedBytes)
     }
 }

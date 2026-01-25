@@ -1,10 +1,10 @@
-import Base
 import CryptoSwift
 import Foundation
 import NIO
-import RocketPack
+import OmniusCoreBase
+import OmniusCoreRocketPack
 
-struct AuthResult {
+struct AuthResult: Sendable {
     let sign: String?
     let cipherAlgorithmType: CipherAlgorithmType
     let encKey: [UInt8]
@@ -13,23 +13,21 @@ struct AuthResult {
     let decNonce: [UInt8]
 }
 
-final class Authenticator: @unchecked Sendable {
+struct Authenticator: Sendable {
     private let type: OmniSecureStreamType
     private let receiver: FramedReceiver
     private let sender: FramedSender
     private let signer: OmniSigner?
-    private let randomBytesProvider: any RandomBytesProvider
-    private let clock: any Clock
-    private let allocator: ByteBufferAllocator
+    private let randomBytesProvider: any RandomBytesProvider & Sendable
+    private let clock: any Clock & Sendable
 
     init(
         type: OmniSecureStreamType,
         receiver: FramedReceiver,
         sender: FramedSender,
         signer: OmniSigner?,
-        randomBytesProvider: any RandomBytesProvider,
-        clock: any Clock,
-        allocator: ByteBufferAllocator
+        randomBytesProvider: any RandomBytesProvider & Sendable,
+        clock: any Clock & Sendable,
     ) {
         self.type = type
         self.receiver = receiver
@@ -37,7 +35,6 @@ final class Authenticator: @unchecked Sendable {
         self.signer = signer
         self.randomBytesProvider = randomBytesProvider
         self.clock = clock
-        self.allocator = allocator
     }
 
     func authenticate() async throws -> AuthResult {
@@ -60,7 +57,7 @@ final class Authenticator: @unchecked Sendable {
         let cipher = CipherAlgorithmType(rawValue: myProfile.cipherAlgorithmType.rawValue & otherProfile.cipherAlgorithmType.rawValue)
         let hash = HashAlgorithmType(rawValue: myProfile.hashAlgorithmType.rawValue & otherProfile.hashAlgorithmType.rawValue)
 
-        guard keyExchange.contains(.x25519) else { throw SecureError.unsupportedAlgorithm("key exchange algorithm") }
+        guard keyExchange.contains(.x25519) else { throw OmniSecureStreamError.unsupportedAlgorithm("key exchange algorithm") }
         let (otherSign, secret) = try await performKeyExchange(
             myProfile: myProfile,
             otherProfile: otherProfile,
@@ -68,7 +65,7 @@ final class Authenticator: @unchecked Sendable {
             hashAlgorithmType: hash
         )
 
-        guard cipher.contains(.aes256Gcm) else { throw SecureError.unsupportedAlgorithm("cipher algorithm") }
+        guard cipher.contains(.aes256Gcm) else { throw OmniSecureStreamError.unsupportedAlgorithm("cipher algorithm") }
         let authResult = try deriveKeys(
             keyDerivationAlgorithmType: keyDerivation,
             hashAlgorithmType: hash,
@@ -90,12 +87,12 @@ final class Authenticator: @unchecked Sendable {
 
     private func sendProfile(_ profile: ProfileMessage) async throws {
         let bytes = try profile.export()
-        try await self.sender.send(ByteBuffer(bytes: bytes))
+        try await self.sender.send(bytes)
     }
 
     private func receiveProfile() async throws -> ProfileMessage {
-        let buffer = try await self.receiver.receive()
-        return try ProfileMessage.import(buffer)
+        let bytes = try await self.receiver.receive()
+        return try ProfileMessage.import(bytes)
     }
 
     private func performKeyExchange(
@@ -105,7 +102,7 @@ final class Authenticator: @unchecked Sendable {
         hashAlgorithmType: HashAlgorithmType
     ) async throws -> (String?, [UInt8]) {
         guard keyExchangeAlgorithmType.contains(.x25519) else {
-            throw SecureError.unsupportedAlgorithm("key exchange algorithm")
+            throw OmniSecureStreamError.unsupportedAlgorithm("key exchange algorithm")
         }
 
         let now = self.clock.now()
@@ -113,7 +110,7 @@ final class Authenticator: @unchecked Sendable {
 
         let myPublicKey = myAgreement.genAgreementPublicKey()
         let myPubBytes = try myPublicKey.export()
-        try await self.sender.send(ByteBuffer(bytes: myPubBytes))
+        try await self.sender.send(myPubBytes)
 
         let otherPubBuffer = try await self.receiver.receive()
         let otherPub = try OmniAgreementPublicKey.import(otherPubBuffer)
@@ -121,7 +118,7 @@ final class Authenticator: @unchecked Sendable {
         if let signer = self.signer {
             let myHash = try genHash(profile: myProfile, agreementPublicKey: myPublicKey, hashAlgorithmType: hashAlgorithmType)
             let myCert = try signer.sign(myHash)
-            try await self.sender.send(ByteBuffer(bytes: try myCert.export()))
+            try await self.sender.send(try myCert.export())
         }
 
         var otherSign: String?
@@ -129,7 +126,9 @@ final class Authenticator: @unchecked Sendable {
             let certBuffer = try await self.receiver.receive()
             let otherCert = try OmniCert.import(certBuffer)
             let otherHash = try genHash(profile: otherProfile, agreementPublicKey: otherPub, hashAlgorithmType: hashAlgorithmType)
-            try otherCert.verify(otherHash)
+            if try !otherCert.verify(otherHash) {
+                throw OmniSecureStreamError.handshakeFailed("invalid cert")
+            }
             otherSign = try otherCert.descriptionString()
         }
 
@@ -146,7 +145,7 @@ final class Authenticator: @unchecked Sendable {
         secret: [UInt8]
     ) throws -> AuthResult {
         guard keyDerivationAlgorithmType.contains(.hkdf) else {
-            throw SecureError.unsupportedAlgorithm("key derivation algorithm")
+            throw OmniSecureStreamError.unsupportedAlgorithm("key derivation algorithm")
         }
 
         let salt = SecureUtils.xor(myProfile.sessionId, otherProfile.sessionId)
@@ -155,11 +154,11 @@ final class Authenticator: @unchecked Sendable {
             keyLen = 32
             nonceLen = 12
         } else {
-            throw SecureError.unsupportedAlgorithm("cipher algorithm")
+            throw OmniSecureStreamError.unsupportedAlgorithm("cipher algorithm")
         }
 
         guard hashAlgorithmType.contains(.sha3_256) else {
-            throw SecureError.unsupportedAlgorithm("hash algorithm")
+            throw OmniSecureStreamError.unsupportedAlgorithm("hash algorithm")
         }
 
         let okm = try HKDF(
@@ -186,7 +185,7 @@ final class Authenticator: @unchecked Sendable {
     private func genHash(profile: ProfileMessage, agreementPublicKey: OmniAgreementPublicKey, hashAlgorithmType: HashAlgorithmType) throws -> [UInt8]
     {
         guard hashAlgorithmType.contains(.sha3_256) else {
-            throw SecureError.unsupportedAlgorithm("hash algorithm")
+            throw OmniSecureStreamError.unsupportedAlgorithm("hash algorithm")
         }
 
         var hasher = SHA3(variant: .sha256)

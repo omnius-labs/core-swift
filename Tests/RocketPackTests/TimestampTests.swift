@@ -1,8 +1,8 @@
-import Base
 import Foundation
+import OmniusCoreBase
 import Testing
 
-@testable import RocketPack
+@testable import OmniusCoreRocketPack
 
 @Test func Timestamp64Test() throws {
     let dateFormatter = ISO8601DateFormatter()

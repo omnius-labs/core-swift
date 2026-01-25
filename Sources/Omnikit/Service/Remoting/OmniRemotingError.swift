@@ -1,5 +1,5 @@
 import Foundation
-import RocketPack
+import OmniusCoreRocketPack
 
 public enum OmniRemotingError: Error {
     case unsupportedType

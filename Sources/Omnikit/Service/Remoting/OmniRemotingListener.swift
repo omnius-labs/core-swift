@@ -1,6 +1,6 @@
 import Foundation
 import NIO
-import RocketPack
+import OmniusCoreRocketPack
 
 public actor OmniRemotingListener {
     private let tcpStream: TcpStream

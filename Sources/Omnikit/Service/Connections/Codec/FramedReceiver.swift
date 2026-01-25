@@ -1,51 +1,47 @@
 import Foundation
 import NIO
+import OmniusCoreBase
 
-public enum FramedReceiverError: Error {
+public protocol FramedReceivable {
+    func receive() async throws -> ByteBuffer
+}
+
+public enum FramedReceiverError: Error, Sendable {
     case incompleteHeader
     case incompleteBody
     case frameTooLong
 }
 
-public final class FramedReceiver: @unchecked Sendable {
-    private let receiver: any AsyncReceive
+public final class FramedReceiver: FramedReceivable, Sendable {
+    private let reader: any AsyncReadable & Sendable
     private let maxFrameLength: Int
     private let allocator: ByteBufferAllocator
 
     private static let headerSize = 4
 
-    public init(_ receiver: any AsyncReceive, maxFrameLength: Int, allocator: ByteBufferAllocator) {
-        self.receiver = receiver
+    public init(_ reader: any AsyncReadable & Sendable, maxFrameLength: Int, allocator: ByteBufferAllocator) {
+        self.reader = reader
         self.maxFrameLength = maxFrameLength
         self.allocator = allocator
     }
 
     public func receive() async throws -> ByteBuffer {
-        var headerBuffer = self.allocator.buffer(capacity: Self.headerSize)
-        while headerBuffer.readableBytes < Self.headerSize {
-            let remain = Self.headerSize - headerBuffer.readableBytes
-            var bytes = try await self.receiver.receive(length: remain)
-            guard bytes.readableBytes > 0 else {
-                throw FramedReceiverError.incompleteHeader
-            }
-            headerBuffer.writeBuffer(&bytes)
+        guard var header = try? await self.reader.readExactly(length: Self.headerSize) else {
+            throw FramedReceiverError.incompleteHeader
         }
 
-        let bodyLength = Int(headerBuffer.readInteger(endianness: .little, as: UInt32.self)!)
+        guard let bodyLength = header.readInteger(endianness: .little, as: Int32.self).map(Int.init) else {
+            throw FramedReceiverError.incompleteHeader
+        }
+
         if bodyLength > self.maxFrameLength {
             throw FramedReceiverError.frameTooLong
         }
 
-        var bodyBuffer = self.allocator.buffer(capacity: Int(bodyLength))
-        while bodyBuffer.readableBytes < bodyLength {
-            let remain = bodyLength - bodyBuffer.readableBytes
-            var bytes = try await self.receiver.receive(length: remain)
-            guard bytes.readableBytes > 0 else {
-                throw FramedReceiverError.incompleteBody
-            }
-            bodyBuffer.writeBuffer(&bytes)
+        do {
+            return try await self.reader.readExactly(length: bodyLength)
+        } catch {
+            throw FramedReceiverError.incompleteBody
         }
-
-        return bodyBuffer
     }
 }

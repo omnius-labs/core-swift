@@ -1,3 +1,3 @@
-enum TcpError: Error {
+enum TcpError: Error, Sendable {
     case notConnected
 }
