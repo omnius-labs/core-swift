@@ -1,7 +1,6 @@
 import Foundation
 import NIO
 import OmniusCoreBase
-import Semaphore
 import Testing
 
 @testable import OmniusCoreOmnikit

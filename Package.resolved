@@ -1,5 +1,5 @@
 {
-  "originHash" : "8f2219803878ca9b886a134b44157257ba26b381a973a36cbb5ccaf442245182",
+  "originHash" : "9904e39ac7186c27195fa93a6986e25b78e1bd76b2d217c7aff7af2cfbecb6b9",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "e45a26384239e028ec87fbcc788f513b67e10d8f",
         "version" : "1.9.0"
-      }
-    },
-    {
-      "identity" : "semaphore",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/groue/Semaphore.git",
-      "state" : {
-        "revision" : "2543679282aa6f6c8ecf2138acd613ed20790bc2",
-        "version" : "0.1.0"
       }
     },
     {
@@ -44,6 +35,15 @@
       "state" : {
         "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
         "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log",
+      "state" : {
+        "revision" : "2778fd4e5a12a8aaa30a3ee8285f4ce54c5f3181",
+        "version" : "1.9.1"
       }
     },
     {

@@ -1,11 +1,10 @@
 import Foundation
 import NIO
-import Semaphore
 import Testing
 
 @testable import OmniusCoreOmnikit
 
-@Test
+@Test(.timeLimit(.minutes(1)))
 func framedSendReceiveDuplexTest() async throws {
     let allocator = ByteBufferAllocator()
     let (stream1, stream2) = DuplexStream.createPair()

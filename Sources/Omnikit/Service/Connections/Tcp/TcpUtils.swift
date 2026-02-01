@@ -1,69 +1,42 @@
-import Dispatch
+import Foundation
 import NIO
-import Semaphore
+import OmniusCoreBase
 
 enum TcpUtils {
     public final class AsyncQueue<T: Sendable>: @unchecked Sendable {
-        private var queue = CircularBuffer<T>()
-        private let semaphore = AsyncSemaphore(value: 0)
-        private let dispatchQueue = DispatchQueue(label: "OmniusCoreOmnikit.AsyncQueue")
+        private var buffer = CircularBuffer<T>()
+        private let ready = ManualResetSignal()
+        private let lock = NSLock()
 
         func enqueue(_ element: T) {
-            self.dispatchQueue.sync {
-                self.queue.append(element)
-                self.semaphore.signal()
+            self.lock.withLock {
+                let wasEmpty = self.buffer.isEmpty
+                self.buffer.append(element)
+                if wasEmpty { self.ready.set() }
             }
         }
 
         func dequeue() async throws -> T {
-            try await self.semaphore.waitUnlessCancelled()
+            while true {
+                var result: T? = nil
+                self.lock.withLock {
+                    if !self.buffer.isEmpty {
+                        result = self.buffer.removeFirst()
+                        if self.buffer.isEmpty { self.ready.reset() }
+                    } else {
+                        self.ready.reset()
+                    }
+                }
 
-            return self.dispatchQueue.sync {
-                return self.queue.removeFirst()
+                if let element = result { return element }
+                try await ready.wait()
             }
-        }
-
-        func peek() async throws -> T {
-            try await self.semaphore.waitUnlessCancelled()
-
-            let result = self.dispatchQueue.sync {
-                return self.queue.first!
-            }
-
-            self.semaphore.signal()
-
-            return result
         }
 
         func count() -> Int {
-            return self.dispatchQueue.sync {
-                return self.queue.count
+            self.lock.withLock {
+                self.buffer.count
             }
-        }
-    }
-
-    public struct Map<TKey: Hashable & Sendable, TValue: Sendable>: Sendable {
-        private var map: [TKey: TValue] = [:]
-
-        func get(key: TKey) -> TValue? {
-            return self.map[key]
-        }
-
-        mutating func getOrDefault(key: TKey, _ create: () -> TValue) -> TValue {
-            if let value = self.map[key] {
-                return value
-            }
-            let value = create()
-            self.map[key] = value
-            return value
-        }
-
-        mutating func set(key: TKey, value: TValue) {
-            self.map[key] = value
-        }
-
-        mutating func remove(key: TKey) {
-            self.map.removeValue(forKey: key)
         }
     }
 }

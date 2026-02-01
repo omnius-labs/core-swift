@@ -19,7 +19,7 @@ extension CommunicationTestMessage: RocketPackStruct {
     }
 }
 
-@Test
+@Test(.timeLimit(.minutes(1)))
 func communicationStreamTest() async throws {
     let allocator = ByteBufferAllocator()
     let maxFrameLength = 1_024 * 1_024

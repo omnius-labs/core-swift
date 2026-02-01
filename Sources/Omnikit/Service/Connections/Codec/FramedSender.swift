@@ -32,7 +32,7 @@ public final class FramedSender: FramedSendable, Sendable {
         var header = self.allocator.buffer(capacity: Self.headerSize)
         header.writeInteger(UInt32(frameLength), endianness: .little)
         try await self.writer.write(buffer: header)
-
         try await self.writer.write(buffer: buffer)
+        try await self.writer.flush()
     }
 }

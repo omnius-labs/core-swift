@@ -1,3 +1,5 @@
+import NIO
+
 public enum BoundedChannelFullMode: Sendable {
     case wait
     case dropNewest
@@ -96,36 +98,19 @@ public struct ChannelWriter<Element: Sendable>: Sendable {
 }
 
 private actor ChannelCore<Element: Sendable> {
-    private struct ReaderWaiter {
-        let id: Int
-        let continuation: CheckedContinuation<Element, Error>
-    }
-
-    private struct WriterWaiter {
-        let id: Int
-        let element: Element
-        let continuation: CheckedContinuation<Void, Error>
-    }
-
-    private struct BoolWaiter {
-        let id: Int
-        let continuation: CheckedContinuation<Bool, Error>
-    }
-
-    // TODO CircularBuffer<Element>を使う
-    private var buffer: [Element] = []
+    private var buffer = CircularBuffer<Element>()
     private let capacity: Int?
     private let fullMode: BoundedChannelFullMode
     private var isCompleted = false
 
-    private var waitingReaders: [ReaderWaiter] = []
-    private var waitingWriters: [WriterWaiter] = []
-    private var waitingToRead: [BoolWaiter] = []
-    private var waitingToWrite: [BoolWaiter] = []
+    private let readReady = ManualResetSignal(initialState: false)
+    private let writeReady = ManualResetSignal(initialState: true)
+    private let readWait = AutoResetSignal()
+    private let writeWait = AutoResetSignal()
+    private let completionSignal = ManualResetSignal()
 
-    private var completionContinuations: [CheckedContinuation<Void, Never>] = []
-    private var completionSignaled = false
-    private var nextId = 0
+    private var waitingReadersCount = 0
+    private var waitingWritersCount = 0
 
     init(capacity: Int?, fullMode: BoundedChannelFullMode) {
         self.capacity = capacity
@@ -136,21 +121,15 @@ private actor ChannelCore<Element: Sendable> {
     }
 
     func read() async throws -> Element {
-        try Task.checkCancellation()
-        if let element = takeNextElementForReader() {
-            return element
-        }
-        if isCompleted {
-            throw ChannelClosedError.closed
-        }
-
-        let id = nextWaiterId()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                waitingReaders.append(ReaderWaiter(id: id, continuation: continuation))
+        while true {
+            try Task.checkCancellation()
+            if let element = takeNextElementForReader() {
+                return element
             }
-        } onCancel: {
-            Task { await cancelReader(id: id) }
+            if isCompleted {
+                throw ChannelClosedError.closed
+            }
+            try await waitForRead()
         }
     }
 
@@ -159,66 +138,51 @@ private actor ChannelCore<Element: Sendable> {
     }
 
     func waitToRead() async throws -> Bool {
-        try Task.checkCancellation()
-        if canReadImmediately() {
-            return true
-        }
-        if isCompleted {
-            return false
-        }
-
-        let id = nextWaiterId()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                waitingToRead.append(BoolWaiter(id: id, continuation: continuation))
+        while true {
+            try Task.checkCancellation()
+            if canReadImmediately() {
+                return true
             }
-        } onCancel: {
-            Task { await cancelWaitToRead(id: id) }
+            if isCompleted {
+                return false
+            }
+            try await readReady.wait()
         }
     }
 
     func write(_ element: Element) async throws {
-        try Task.checkCancellation()
-        if isCompleted {
-            throw ChannelClosedError.closed
-        }
-
-        if let reader = popWaitingReader() {
-            reader.continuation.resume(returning: element)
-            signalReadAvailability()
-            return
-        }
-
-        if capacity == nil {
-            buffer.append(element)
-            signalReadAvailability()
-            return
-        }
-
-        if let capacity, buffer.count < capacity {
-            buffer.append(element)
-            signalReadAvailability()
-            return
-        }
-
-        switch fullMode {
-        case .wait:
-            try await waitForWrite(element)
-        case .dropWrite:
-            signalReadAvailability()
-            return
-        case .dropOldest:
-            if !buffer.isEmpty {
-                buffer.removeFirst()
+        while true {
+            try Task.checkCancellation()
+            if isCompleted {
+                throw ChannelClosedError.closed
             }
-            buffer.append(element)
-            signalReadAvailability()
-        case .dropNewest:
-            if !buffer.isEmpty {
-                buffer.removeLast()
+            if let capacity, buffer.count >= capacity {
+                switch fullMode {
+                case .wait:
+                    try await waitForWrite()
+                    continue
+                case .dropWrite:
+                    updateReadReady()
+                    updateWriteReady()
+                    return
+                case .dropOldest:
+                    if !buffer.isEmpty {
+                        buffer.removeFirst()
+                    }
+                case .dropNewest:
+                    if !buffer.isEmpty {
+                        buffer.removeLast()
+                    }
+                }
             }
+
             buffer.append(element)
-            signalReadAvailability()
+            updateReadReady()
+            updateWriteReady()
+            if waitingReadersCount > 0 {
+                readWait.set()
+            }
+            return
         }
     }
 
@@ -227,63 +191,44 @@ private actor ChannelCore<Element: Sendable> {
             return false
         }
 
-        if let reader = popWaitingReader() {
-            reader.continuation.resume(returning: element)
-            signalReadAvailability()
-            return true
-        }
-
-        if capacity == nil {
-            buffer.append(element)
-            signalReadAvailability()
-            return true
-        }
-
-        if let capacity, buffer.count < capacity {
-            buffer.append(element)
-            signalReadAvailability()
-            return true
-        }
-
-        switch fullMode {
-        case .wait:
-            return false
-        case .dropWrite:
-            signalReadAvailability()
-            return true
-        case .dropOldest:
-            if !buffer.isEmpty {
-                buffer.removeFirst()
+        if let capacity, buffer.count >= capacity {
+            switch fullMode {
+            case .wait:
+                return false
+            case .dropWrite:
+                updateReadReady()
+                updateWriteReady()
+                return true
+            case .dropOldest:
+                if !buffer.isEmpty {
+                    buffer.removeFirst()
+                }
+            case .dropNewest:
+                if !buffer.isEmpty {
+                    buffer.removeLast()
+                }
             }
-            buffer.append(element)
-            signalReadAvailability()
-            return true
-        case .dropNewest:
-            if !buffer.isEmpty {
-                buffer.removeLast()
-            }
-            buffer.append(element)
-            signalReadAvailability()
-            return true
         }
+
+        buffer.append(element)
+        updateReadReady()
+        updateWriteReady()
+        if waitingReadersCount > 0 {
+            readWait.set()
+        }
+        return true
     }
 
     func waitToWrite() async throws -> Bool {
-        try Task.checkCancellation()
-        if isCompleted {
-            return false
-        }
-        if canWriteImmediately() {
-            return true
-        }
-
-        let id = nextWaiterId()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                waitingToWrite.append(BoolWaiter(id: id, continuation: continuation))
+        while true {
+            try Task.checkCancellation()
+            if isCompleted {
+                return false
             }
-        } onCancel: {
-            Task { await cancelWaitToWrite(id: id) }
+            if canWriteImmediately() {
+                return true
+            }
+            try await writeReady.wait()
         }
     }
 
@@ -293,25 +238,21 @@ private actor ChannelCore<Element: Sendable> {
         }
         isCompleted = true
 
-        let writers = waitingWriters
-        waitingWriters.removeAll()
-        for writer in writers {
-            writer.continuation.resume(throwing: ChannelClosedError.closed)
-        }
-
-        resumeWaitToWriteAll(false)
-
-        if buffer.isEmpty {
-            let readers = waitingReaders
-            waitingReaders.removeAll()
-            for reader in readers {
-                reader.continuation.resume(throwing: ChannelClosedError.closed)
+        let readersToWake = waitingReadersCount
+        let writersToWake = waitingWritersCount
+        if readersToWake > 0 {
+            for _ in 0..<readersToWake {
+                readWait.set()
             }
-            resumeWaitToReadAll(false)
-        } else {
-            resumeWaitToReadAll(true)
+        }
+        if writersToWake > 0 {
+            for _ in 0..<writersToWake {
+                writeWait.set()
+            }
         }
 
+        updateReadReady()
+        updateWriteReady()
         finishIfPossible()
     }
 
@@ -319,81 +260,86 @@ private actor ChannelCore<Element: Sendable> {
         if isCompletionSatisfied() {
             return
         }
-        await withCheckedContinuation { continuation in
-            completionContinuations.append(continuation)
-        }
-    }
-
-    private func waitForWrite(_ element: Element) async throws {
-        let id = nextWaiterId()
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                waitingWriters.append(WriterWaiter(id: id, element: element, continuation: continuation))
-            }
-        } onCancel: {
-            Task { await cancelWriter(id: id) }
+        do {
+            try await completionSignal.wait()
+        } catch {
+            // Ignore cancellation: completion is best-effort.
         }
     }
 
     private func takeNextElementForReader() -> Element? {
-        if !buffer.isEmpty {
-            let element = buffer.removeFirst()
-            if let writer = dequeueWriterIfPossible() {
-                buffer.append(writer.element)
-                writer.continuation.resume()
-                signalReadAvailability()
-            }
-            signalWriteAvailability()
+        guard !buffer.isEmpty else { return nil }
+        let element = buffer.removeFirst()
+        updateReadReady()
+        updateWriteReady()
+        if waitingWritersCount > 0 {
+            writeWait.set()
+        }
+        finishIfPossible()
+        return element
+    }
+
+    private func waitForRead() async throws {
+        waitingReadersCount += 1
+        defer {
+            waitingReadersCount -= 1
             finishIfPossible()
-            return element
         }
+        try await readWait.wait()
+    }
 
-        if let writer = popWaitingWriter() {
-            writer.continuation.resume()
-            signalWriteAvailability()
+    private func waitForWrite() async throws {
+        waitingWritersCount += 1
+        defer {
+            waitingWritersCount -= 1
             finishIfPossible()
-            return writer.element
         }
-
-        return nil
+        try await writeWait.wait()
     }
 
-    private func dequeueWriterIfPossible() -> WriterWaiter? {
-        guard let capacity else { return nil }
-        guard buffer.count < capacity else { return nil }
-        return popWaitingWriter()
+    private func finishIfPossible() {
+        guard isCompleted else { return }
+
+        if isCompletionSatisfied() {
+            completionSignal.set()
+        }
     }
 
-    private func popWaitingReader() -> ReaderWaiter? {
-        if waitingReaders.isEmpty {
-            return nil
-        }
-        return waitingReaders.removeFirst()
+    private func isCompletionSatisfied() -> Bool {
+        isCompleted && buffer.isEmpty && waitingReadersCount == 0 && waitingWritersCount == 0
     }
 
-    private func popWaitingWriter() -> WriterWaiter? {
-        if waitingWriters.isEmpty {
-            return nil
+    private func updateReadReady() {
+        if isCompleted {
+            readReady.set()
+            return
         }
-        return waitingWriters.removeFirst()
+        if self.canReadImmediately() {
+            readReady.set()
+        } else {
+            readReady.reset()
+        }
+    }
+
+    private func updateWriteReady() {
+        if isCompleted {
+            writeReady.set()
+            return
+        }
+        if self.canWriteImmediately() {
+            writeReady.set()
+        } else {
+            writeReady.reset()
+        }
     }
 
     private func canReadImmediately() -> Bool {
-        if !buffer.isEmpty {
-            return true
-        }
-        if !waitingWriters.isEmpty {
-            return true
-        }
-        return false
+        !buffer.isEmpty
     }
 
     private func canWriteImmediately() -> Bool {
         if isCompleted {
             return false
-        }
-        if !waitingReaders.isEmpty {
-            return true
         }
         if capacity == nil {
             return true
@@ -402,113 +348,5 @@ private actor ChannelCore<Element: Sendable> {
             return true
         }
         return fullMode != .wait
-    }
-
-    private func signalReadAvailability() {
-        if waitingToRead.isEmpty {
-            return
-        }
-        if isCompleted && buffer.isEmpty {
-            resumeWaitToReadAll(false)
-            return
-        }
-        if !buffer.isEmpty || !waitingWriters.isEmpty {
-            resumeWaitToReadAll(true)
-        }
-    }
-
-    private func signalWriteAvailability() {
-        if waitingToWrite.isEmpty {
-            return
-        }
-        if isCompleted {
-            resumeWaitToWriteAll(false)
-            return
-        }
-        if canWriteImmediately() {
-            resumeWaitToWriteAll(true)
-        }
-    }
-
-    private func resumeWaitToReadAll(_ value: Bool) {
-        let waiters = waitingToRead
-        waitingToRead.removeAll()
-        for waiter in waiters {
-            waiter.continuation.resume(returning: value)
-        }
-    }
-
-    private func resumeWaitToWriteAll(_ value: Bool) {
-        let waiters = waitingToWrite
-        waitingToWrite.removeAll()
-        for waiter in waiters {
-            waiter.continuation.resume(returning: value)
-        }
-    }
-
-    private func finishIfPossible() {
-        guard isCompleted else { return }
-
-        if buffer.isEmpty {
-            if !waitingReaders.isEmpty {
-                let readers = waitingReaders
-                waitingReaders.removeAll()
-                for reader in readers {
-                    reader.continuation.resume(throwing: ChannelClosedError.closed)
-                }
-            }
-            if !waitingToRead.isEmpty {
-                resumeWaitToReadAll(false)
-            }
-        }
-
-        if isCompletionSatisfied() {
-            signalCompletion()
-        }
-    }
-
-    private func isCompletionSatisfied() -> Bool {
-        isCompleted && buffer.isEmpty && waitingReaders.isEmpty && waitingWriters.isEmpty
-    }
-
-    private func signalCompletion() {
-        if completionSignaled {
-            return
-        }
-        completionSignaled = true
-        let continuations = completionContinuations
-        completionContinuations.removeAll()
-        for continuation in continuations {
-            continuation.resume()
-        }
-    }
-
-    private func nextWaiterId() -> Int {
-        nextId += 1
-        return nextId
-    }
-
-    private func cancelReader(id: Int) {
-        guard let index = waitingReaders.firstIndex(where: { $0.id == id }) else { return }
-        let waiter = waitingReaders.remove(at: index)
-        waiter.continuation.resume(throwing: CancellationError())
-    }
-
-    private func cancelWriter(id: Int) {
-        guard let index = waitingWriters.firstIndex(where: { $0.id == id }) else { return }
-        let waiter = waitingWriters.remove(at: index)
-        waiter.continuation.resume(throwing: CancellationError())
-    }
-
-    private func cancelWaitToRead(id: Int) {
-        guard let index = waitingToRead.firstIndex(where: { $0.id == id }) else { return }
-        let waiter = waitingToRead.remove(at: index)
-        waiter.continuation.resume(throwing: CancellationError())
-    }
-
-    private func cancelWaitToWrite(id: Int) {
-        guard let index = waitingToWrite.firstIndex(where: { $0.id == id }) else { return }
-        let waiter = waitingToWrite.remove(at: index)
-        waiter.continuation.resume(throwing: CancellationError())
     }
 }

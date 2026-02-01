@@ -28,6 +28,17 @@ public actor TcpListener: Sendable {
         self.bindChannel = try await self.serverBootstrap.bind(host: host, port: port).get()
     }
 
+    func port() throws -> Int {
+        guard let channel = self.bindChannel,
+            let address = channel.localAddress,
+            let port = address.port
+        else {
+            throw TcpError.notConnected
+        }
+
+        return port
+    }
+
     public func close() async throws {
         guard let channel = self.bindChannel else {
             throw TcpError.notConnected
@@ -63,6 +74,6 @@ final class TcpListenerChannelInboundHandler: ChannelInboundHandler, Sendable {
 
     func channelInactive(context: ChannelHandlerContext) {
         let tcpStream = self.tcpStreamManager.get(context.channel)
-        tcpStream.enqueueReceive(.inactive)
+        tcpStream.enqueueReceive(.closing)
     }
 }

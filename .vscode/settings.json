@@ -1,13 +1,14 @@
 {
-  "cSpell.words": [
-    "ciphertext",
-    "Errno",
-    "Gameplay",
-    "Mersenne",
-    "nanos",
-    "Omnikit",
-    "Omnius",
-    "tayloraswift",
-    "Varint"
-  ]
+    "cSpell.words": [
+        "ciphertext",
+        "Errno",
+        "Gameplay",
+        "Mersenne",
+        "nanos",
+        "Omnikit",
+        "Omnius",
+        "tayloraswift",
+        "Varint",
+        "Yamux"
+    ]
 }

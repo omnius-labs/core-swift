@@ -1,6 +1,5 @@
 import Dispatch
 import NIO
-import Semaphore
 
 public actor TcpConnector: Sendable {
     private let clientBootstrap: ClientBootstrap
@@ -47,6 +46,6 @@ final class TcpStreamChannelInboundHandler: ChannelInboundHandler, Sendable {
 
     func channelInactive(context: ChannelHandlerContext) {
         let tcpStream = self.tcpStreamManager.get(context.channel)
-        tcpStream.enqueueReceive(.inactive)
+        tcpStream.enqueueReceive(.closing)
     }
 }
