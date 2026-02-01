@@ -1,6 +1,5 @@
 import Dispatch
 import NIO
-import Semaphore
 
 public actor TcpListener: Sendable {
     private let serverBootstrap: ServerBootstrap

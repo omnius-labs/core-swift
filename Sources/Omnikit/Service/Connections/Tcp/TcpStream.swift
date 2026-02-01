@@ -3,7 +3,6 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 import OmniusCoreBase
-import Semaphore
 
 public actor TcpStream: AsyncReadable, AsyncWritable, Sendable {
     private let channel: NIO.Channel
